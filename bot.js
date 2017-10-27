@@ -10,6 +10,7 @@ const Discord = require('discord.js');
 
 const client = new Discord.Client();
 var ArrLottery = [];
+var ArrShowNext = [];
 
 function DEBUGLOG(logstr){
   if(DEBUG)
@@ -415,19 +416,41 @@ client.on('message', message => {
               message.reply(botstr.err_text_KeyNotFound);
             }
             else{
-              var strshow ="";
-              row.forEach(function(element) {
-                showprefix = element.discord_channel != arow.discord_channel ? "*":"";
-                if(element.getdiscord_id === "lot"){
-                  strshow+=`${botfn.getText(botstr.show_text_FormatNameKey,[element.id,element.NameOfGame,element.GameKey,`${showprefix}(L)`])}\n`;
+              for (var j = 0; j < ArrShowNext.length; j++){
+                if(ArrShowNext[j].id == message.author.id){
+                  ArrShowNext.splice(j,1);
                 }
-                else if (element.getdiscord_id === "runlot"){
-                  strshow+=`${botfn.getText(botstr.show_text_FormatNameKey,[element.id,element.NameOfGame,element.GameKey,`${showprefix}(R)`])}\n`;
+              }
+              var strshow ="";
+              for (var i = 0; i < row.length; i++){
+                if(`${strshow}${botfn.getText(botstr.show_text_FormatNameKey,[row[i].id,row[i].NameOfGame,row[i].GameKey])}\n`.length < 1500){
+                  showprefix = row[i].discord_channel != arow.discord_channel ? "*":"";
+                  if(row[i].getdiscord_id === "lot"){
+                    strshow+=`${botfn.getText(botstr.show_text_FormatNameKey,[row[i].id,row[i].NameOfGame,row[i].GameKey,`${showprefix}(L)`])}\n`;
+                  }
+                  else if (row[i].getdiscord_id === "runlot"){
+                    strshow+=`${botfn.getText(botstr.show_text_FormatNameKey,[row[i].id,row[i].NameOfGame,row[i].GameKey,`${showprefix}(R)`])}\n`;
+                  }
+                  else{
+                    strshow+=`${botfn.getText(botstr.show_text_FormatNameKey,[row[i].id,row[i].NameOfGame,row[i].GameKey,`${showprefix}`])}\n`;
+                  }
                 }
                 else{
-                  strshow+=`${botfn.getText(botstr.show_text_FormatNameKey,[element.id,element.NameOfGame,element.GameKey,`${showprefix}`])}\n`;
+                  strshow+=`...`;
+                  ArrShowNext.push({
+                    "id" : message.author.id,
+                    "num" : i
+                  });
+                  setTimeout(() =>{
+                    for (var j = 0; j < ArrShowNext.length; j++){
+                      if(ArrShowNext[j].id == message.author.id){
+                        ArrShowNext.splice(j,1);
+                      }
+                    }
+                  },60000);
+                  break;
                 }
-              }, this);
+              }
 
               if (strshow === ""){
                 DEBUGLOG(`OUT SHOW Not found key.`);
@@ -435,6 +458,69 @@ client.on('message', message => {
               }
               else{
                 DEBUGLOG(`OUT SHOW Found key.`);
+                message.reply(botfn.getText(botstr.show_text_KeyFound,strshow));
+              }
+            }
+          });
+        }
+      });
+    }
+    else if (command === "shownext"){
+      db.get(`SELECT discord_id,discord_channel FROM authors WHERE discord_id="${message.author.id}"`).then(arow => {
+        if(!arow){
+          DEBUGLOG(`OUT SHOWNEXT You not in base. Send addme`);
+          message.reply(botstr.err_text_NotFoundInAuthorBase);
+        }
+        else{
+          db.all(`SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and (getdiscord_id IS NULL or getdiscord_id="lot" or getdiscord_id="runlot")`).then(row =>{
+            if(!row){
+              DEBUGLOG(`OUT SHOWNEXT Not found all key. (!row)`);
+              message.reply(botstr.err_text_KeyNotFound);
+            }
+            else{
+              var strshow ="";
+              var istart = 0;
+              var jArrShowNext = 0;
+              if(ArrShowNext.length > 0){
+                for (var j = 0; j < ArrShowNext.length; j++){
+                  if(ArrShowNext[j].id == message.author.id){
+                    jArrShowNext = j;
+                    istart = ArrShowNext[j].num;
+                    strshow+=`...\n`;
+                    break;
+                  }
+                }
+              }
+              
+              for (var i = istart; i < row.length; i++){
+                if(`${strshow}${botfn.getText(botstr.show_text_FormatNameKey,[row[i].id,row[i].NameOfGame,row[i].GameKey])}\n`.length < 1500){
+                  showprefix = row[i].discord_channel != arow.discord_channel ? "*":"";
+                  if(row[i].getdiscord_id === "lot"){
+                    strshow+=`${botfn.getText(botstr.show_text_FormatNameKey,[row[i].id,row[i].NameOfGame,row[i].GameKey,`${showprefix}(L)`])}\n`;
+                  }
+                  else if (row[i].getdiscord_id === "runlot"){
+                    strshow+=`${botfn.getText(botstr.show_text_FormatNameKey,[row[i].id,row[i].NameOfGame,row[i].GameKey,`${showprefix}(R)`])}\n`;
+                  }
+                  else{
+                    strshow+=`${botfn.getText(botstr.show_text_FormatNameKey,[row[i].id,row[i].NameOfGame,row[i].GameKey,`${showprefix}`])}\n`;
+                  }
+                }
+                else{
+                  strshow+=`...`;
+                  if (istart > 0){
+                    ArrShowNext[jArrShowNext].num = i;
+                  }
+                  break;
+                }
+              }
+              
+              
+              if (strshow === ""){
+                DEBUGLOG(`OUT SHOWNEXT Not found key.`);
+                message.reply(botstr.err_text_KeyNotFound);
+              }
+              else{
+                DEBUGLOG(`OUT SHOWNEXT Found key.`);
                 message.reply(botfn.getText(botstr.show_text_KeyFound,strshow));
               }
             }
@@ -717,6 +803,7 @@ client.on('messageReactionRemove', (messageReaction,user) => {
     db.run(`DELETE FROM lottery WHERE lotmessage_id="${messageReaction.message.id}" and discord_id="${user.id}"`);
   }
 });
+
 
 db.open(config.database);
 client.login(config.token);

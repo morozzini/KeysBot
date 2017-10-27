@@ -25,7 +25,7 @@ module.exports.getCommand = instr => {
         if (/^\?$/.test(splstr[0])){
             return `shorthelp`;
         }
-        else if(/^(addme|whereme|show(my|key|lot|lotrun)?|ping)$/.test(splstr[0])){
+        else if(/^(addme|whereme|show(my|key|lot|lotrun|next)?|ping)$/.test(splstr[0])){
             return `${splstr[0]}`;
         }
         else if(/^(getkey|del|(del|set|add)(key|lot)|start|stop)$/.test(splstr[0])){
