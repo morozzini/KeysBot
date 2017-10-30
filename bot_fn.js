@@ -25,8 +25,16 @@ module.exports.getCommand = instr => {
         if (/^\?$/.test(splstr[0])){
             return `shorthelp`;
         }
-        else if(/^(addme|whereme|show(my|key|lot|lotrun|next)?|ping)$/.test(splstr[0])){
+        else if(/^(addme|whereme|ping)$/.test(splstr[0])){
             return `${splstr[0]}`;
+        }
+        else if (/^(show(my|key|lot|lotrun|next)?)$/.test(splstr[0])){
+            if(splstr[0].length == 4){
+                return `show`;
+            }
+            else{
+                return `show ${splstr[0].substr(4)}`;
+            }
         }
         else if(/^(getkey|del|(del|set|add)(key|lot)|start|stop)$/.test(splstr[0])){
             return `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand,[splstr[0],` (${botstr.err_text_WrongUseCommand_UnsetIndex})`])}`;

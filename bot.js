@@ -83,16 +83,32 @@ client.on('message', message => {
             message.channel.send(botstr.err_text_KeyNotFoundForChannel);
           }
           else{
+            for (var j = 0; j < ArrShowNext.length; j++){
+              if(ArrShowNext[j].id == message.channel.id){
+                ArrShowNext.splice(j,1);
+              }
+            }
             var strshow ="";
-            row.forEach(function(element) {
-              if(`${strshow}${botfn.getText(botstr.show_text_FormatNameAuthor,[element.id,element.NameOfGame,element.discord_nickname])}`.length > 2048){
-                strshow+=`...`;
-                return;
+            for (var i =0; i < row.length; i++) {
+              if(`${strshow}${botfn.getText(botstr.show_text_FormatNameAuthor,[row[i].id,row[i].NameOfGame,row[i].discord_nickname])}`.length < 1500){
+                strshow+=`${botfn.getText(botstr.show_text_FormatNameAuthor,[row[i].id,row[i].NameOfGame,row[i].discord_nickname])}\n`;
               }
               else{
-                strshow+=`${botfn.getText(botstr.show_text_FormatNameAuthor,[element.id,element.NameOfGame,element.discord_nickname])}\n`;
+                strshow+=`...`;
+                ArrShowNext.push({
+                  "id" : message.channel.id,
+                  "num" : i
+                });
+                setTimeout(() =>{
+                  for (var j = 0; j < ArrShowNext.length; j++){
+                    if(ArrShowNext[j].id == message.channel.id){
+                      ArrShowNext.splice(j,1);
+                    }
+                  }
+                },60000);
+                break;
               }
-            }, this);
+            };
             
             if(strshow === ""){
               DEBUGLOG(`OUT SHOW Key Not found.`);
@@ -295,8 +311,8 @@ client.on('message', message => {
     var command = commandfull.match(/^[^\s]+/)[0];
 
     if(command === botstr.err_text_Prefix){
-      DEBUGLOG(`OUT ERROR "${commandfull}"`);
-      message.reply(commandfull);
+        DEBUGLOG(`OUT ERROR "${commandfull}"`);
+        message.reply(commandfull);
     }
     else if (command === "help") {
       DEBUGLOG(`OUT HELP embed "${commandfull}"`);
@@ -310,13 +326,14 @@ client.on('message', message => {
       DEBUGLOG(`OUT pong"`);
       message.author.send("pong");
     }
-    else if (command === "showlot"){
+    else{
+      //Команды требующие предварительной авторизации
       db.get(`SELECT discord_id,discord_channel FROM authors WHERE discord_id="${message.author.id}"`).then(arow => {
         if(!arow){
-          DEBUGLOG(`OUT SHOWLOT You not in base. Send addme`);
+          DEBUGLOG(`OUT You not in base. Send addme`);
           message.reply(botstr.err_text_NotFoundInAuthorBase);
         }
-        else{
+        else if (command === "showlot"){
           db.all(`SELECT id,discord_channel,NameOfGame,GameKey FROM gamekeys WHERE discord_id="${message.author.id}" and getdiscord_id="lot"`).then(row =>{
             if(!row){
               DEBUGLOG(`OUT SHOWLOT Not found lotkey. (!row)`);
@@ -339,15 +356,7 @@ client.on('message', message => {
             }
           });
         }
-      });
-    }
-    else if (command === "showlotrun"){
-      db.get(`SELECT discord_id,discord_channel FROM authors WHERE discord_id="${message.author.id}"`).then(arow => {
-        if(!arow){
-          DEBUGLOG(`OUT SHOWLOTRUN You not in base. Send addme`);
-          message.reply(botstr.err_text_NotFoundInAuthorBase);
-        }
-        else{
+        else if (command === "showlotrun"){
           db.all(`SELECT id,discord_channel,NameOfGame,GameKey FROM gamekeys WHERE discord_id="${message.author.id}" and getdiscord_id="runlot"`).then(row =>{
             if(!row){
               DEBUGLOG(`OUT SHOWLOTRUN Not found runlotkey. (!row)`);
@@ -370,15 +379,7 @@ client.on('message', message => {
             }
           });
         }
-      });
-    }
-    else if (command === "showkey"){
-      db.get(`SELECT discord_id,discord_channel FROM authors WHERE discord_id="${message.author.id}"`).then(arow => {
-        if(!arow){
-          DEBUGLOG(`OUT SHOWKEY You not in base. Send addme`);
-          message.reply(botstr.err_text_NotFoundInAuthorBase);
-        }
-        else{
+        else if (command === "showkey"){
           db.all(`SELECT id,discord_channel,NameOfGame,GameKey FROM gamekeys WHERE discord_id="${message.author.id}" and getdiscord_id IS NULL`).then(row =>{
             if(!row){
               DEBUGLOG(`OUT SHOWKEY Not found key. (!row)`);
@@ -401,15 +402,7 @@ client.on('message', message => {
             }
           });
         }
-      });
-    }
-    else if (command === "show"){
-      db.get(`SELECT discord_id,discord_channel FROM authors WHERE discord_id="${message.author.id}"`).then(arow => {
-        if(!arow){
-          DEBUGLOG(`OUT SHOW You not in base. Send addme`);
-          message.reply(botstr.err_text_NotFoundInAuthorBase);
-        }
-        else{
+        else if (command === "show"){
           db.all(`SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and (getdiscord_id IS NULL or getdiscord_id="lot" or getdiscord_id="runlot")`).then(row =>{
             if(!row){
               DEBUGLOG(`OUT SHOW Not found all key. (!row)`);
@@ -463,15 +456,7 @@ client.on('message', message => {
             }
           });
         }
-      });
-    }
-    else if (command === "shownext"){
-      db.get(`SELECT discord_id,discord_channel FROM authors WHERE discord_id="${message.author.id}"`).then(arow => {
-        if(!arow){
-          DEBUGLOG(`OUT SHOWNEXT You not in base. Send addme`);
-          message.reply(botstr.err_text_NotFoundInAuthorBase);
-        }
-        else{
+        else if (command === "shownext"){
           db.all(`SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and (getdiscord_id IS NULL or getdiscord_id="lot" or getdiscord_id="runlot")`).then(row =>{
             if(!row){
               DEBUGLOG(`OUT SHOWNEXT Not found all key. (!row)`);
@@ -526,19 +511,11 @@ client.on('message', message => {
             }
           });
         }
-      });
-    }
-    else if (command === "addkey"){
-      var inGameKey = commandfull.match(/[^\s]+$/)[0];
-      var inGameName = commandfull.substr(6,commandfull.lastIndexOf(" ")-6).trim();
-      
-      if((inGameKey != "") && (inGameName != "")){
-        db.get(`SELECT discord_id,discord_channel FROM authors WHERE discord_id="${message.author.id}"`).then(arow => {
-          if(!arow){
-            DEBUGLOG(`OUT ADDKEY You not in base. Send addme`);
-            message.reply(botstr.err_text_NotFoundInAuthorBase);
-          }
-          else{
+        else if (command === "addkey"){
+          var inGameKey = commandfull.match(/[^\s]+$/)[0];
+          var inGameName = commandfull.substr(6,commandfull.lastIndexOf(" ")-6).trim();
+          
+          if((inGameKey != "") && (inGameName != "")){
             db.get(`SELECT id,NameOfGame,GameKey FROM gamekeys WHERE discord_id="${message.author.id}" and NameOfGame="${inGameName}" and GameKey="${inGameKey}" and getdiscord_id IS NULL`).then(row =>{
               if(!row){
                 db.run("INSERT INTO gamekeys (discord_id, discord_nickname, discord_channel, NameOfGame, GameKey) VALUES (?,?,?,?,?)",[message.author.id,message.author.username,arow.discord_channel,inGameName,inGameKey]);
@@ -568,20 +545,12 @@ client.on('message', message => {
             //   });
             // });
           }
-        });
-      }
-    }
-    else if (command === "addlot"){
-      var inGameKey = commandfull.match(/[^\s]+$/)[0];
-      var inGameName = commandfull.substr(6,commandfull.lastIndexOf(" ")-6).trim();
+        }
+        else if (command === "addlot"){
+          var inGameKey = commandfull.match(/[^\s]+$/)[0];
+          var inGameName = commandfull.substr(6,commandfull.lastIndexOf(" ")-6).trim();
 
-      if((inGameKey != "") && (inGameName != "")){
-        db.get(`SELECT discord_id,discord_channel FROM authors WHERE discord_id="${message.author.id}"`).then(arow => {
-          if(!arow){
-            DEBUGLOG(`OUT ADDLOT You not in base. Send addme`);
-            message.reply(botstr.err_text_NotFoundInAuthorBase);
-          }
-          else{
+          if((inGameKey != "") && (inGameName != "")){
             db.get(`SELECT id,NameOfGame,GameKey FROM gamekeys WHERE discord_id="${message.author.id}" and NameOfGame="${inGameName}" and GameKey="${inGameKey}" and getdiscord_id="lot"`).then(row =>{
               if(!row){
                 db.run("INSERT INTO gamekeys (discord_id, discord_nickname, discord_channel, NameOfGame, GameKey, getdiscord_id) VALUES (?,?,?,?,?,?)",[message.author.id,message.author.username,arow.discord_channel,inGameName,inGameKey,"lot"]);
@@ -598,17 +567,10 @@ client.on('message', message => {
               }
             });
           }
-        });
-      }
-    }
-    else if (command === "dellot"){
-      db.get(`SELECT discord_id,discord_channel FROM authors WHERE discord_id="${message.author.id}"`).then(arow => {
-        if(!arow){
-          DEBUGLOG(`OUT DELLOT You not in base. Send addme`);
-          message.reply(botstr.err_text_NotFoundInAuthorBase);
         }
-        else{
+        else if (command === "dellot"){
           var inId = commandfull.match(/\d+$/)[0];
+
           if(inId != ""){
             db.get(`SELECT id,NameOfGame,GameKey FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lot"`).then(row => {
               if(!row){
@@ -624,15 +586,7 @@ client.on('message', message => {
             });
           }
         }
-      });
-    }
-    else if (command === "delkey"){
-      db.get(`SELECT discord_id,discord_channel FROM authors WHERE discord_id="${message.author.id}"`).then(arow => {
-        if(!arow){
-          DEBUGLOG(`OUT DELKEY You not in base. Send addme`);
-          message.reply(botstr.err_text_NotFoundInAuthorBase);
-        }
-        else{
+        else if (command === "delkey"){
           var inId = commandfull.match(/\d+$/)[0];
           if(inId != ""){
             db.get(`SELECT id,NameOfGame,GameKey FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and getdiscord_id IS NULL`).then(row => {
@@ -649,15 +603,7 @@ client.on('message', message => {
             });
           }
         }
-      });
-    }
-    else if (command === "del"){
-      db.get(`SELECT discord_id,discord_channel FROM authors WHERE discord_id="${message.author.id}"`).then(arow => {
-        if(!arow){
-          DEBUGLOG(`OUT DEL You not in base. Send addme`);
-          message.reply(botstr.err_text_NotFoundInAuthorBase);
-        }
-        else{
+        else if (command === "del"){
           var inId = commandfull.match(/\d+$/)[0];
           if(inId != ""){
             db.get(`SELECT id,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and (getdiscord_id IS NULL or getdiscord_id="lot")`).then(row => {
@@ -681,15 +627,7 @@ client.on('message', message => {
             });
           }
         }
-      });
-    }
-    else if (command === "setkey"){
-      db.get(`SELECT discord_id,discord_channel FROM authors WHERE discord_id="${message.author.id}"`).then(arow => {
-        if(!arow){
-          DEBUGLOG(`OUT SETKEY You not in base. Send addme`);
-          message.reply(botstr.err_text_NotFoundInAuthorBase);
-        }
-        else{
+        else if (command === "setkey"){
           var inId = commandfull.match(/\d+$/)[0];
           if(inId != ""){
             db.get(`SELECT id,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and (getdiscord_id IS NULL or getdiscord_id="lot")`).then(row => {
@@ -713,15 +651,7 @@ client.on('message', message => {
             });
           }
         }
-      });
-    }
-    else if (command === "setlot"){
-      db.get(`SELECT discord_id,discord_channel FROM authors WHERE discord_id="${message.author.id}"`).then(arow => {
-        if(!arow){
-          DEBUGLOG(`OUT SETLOT You not in base. Send addme`);
-          message.reply(botstr.err_text_NotFoundInAuthorBase);
-        }
-        else{
+        else if (command === "setlot"){
           var inId = commandfull.match(/\d+$/)[0];
           if(inId != ""){
             db.get(`SELECT id,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and (getdiscord_id IS NULL or getdiscord_id="lot")`).then(row => {
@@ -745,17 +675,10 @@ client.on('message', message => {
             });
           }
         }
-      });
-    }
-    else if (command === "whereme"){
-      db.get(`SELECT discord_id,discord_channel FROM authors WHERE discord_id="${message.author.id}"`).then(arow => {
-        if(!arow){
-          DEBUGLOG(`OUT WHEREME You not in base. Send addme`);
-          message.reply(botstr.err_text_NotFoundInAuthorBase);
-        }
-        else{
+        else if (command === "whereme"){
           var channelfound = false;
           var arrchannels = client.channels.array();
+          
           for(var i=0; i < arrchannels.length; i++){
               if(arrchannels[i].id == arow.discord_channel){
                 DEBUGLOG(`OUT WHEREME Found: "${arrchannels[i].guild.name}"->"${arrchannels[i].name}"`);
@@ -769,13 +692,12 @@ client.on('message', message => {
             message.reply(botstr.err_text_AuthorNotFound);
           }
         }
+        else{
+          DEBUGLOG(`OUT ERROR. Command not found! "${command}"`);
+          message.reply(botfn.getText(botstr.err_text_WrongUseCommandOrUnknownCommand,command));
+        }
       });
     }
-    else{
-      DEBUGLOG(`OUT ERROR. Command not found! "${command}"`);
-      message.reply(botfn.getText(botstr.err_text_WrongUseCommandOrUnknownCommand,command));
-    }
-    
   }
 });
 
