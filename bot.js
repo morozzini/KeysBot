@@ -22,6 +22,7 @@ client.on('ready', () => {
     db.run("CREATE TABLE IF NOT EXISTS authors (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, discord_id, discord_channel, discord_nickname)");
     db.run("CREATE TABLE IF NOT EXISTS lottery (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, lotkey_id, lotmessage_id, discord_id, discord_channel, discord_nickname)");
     console.log(`I am ready! ${BOTVERSION}`);
+    //TODO проверка есть-ли запущенные и не прошедшие лотереи
 });
 
 client.on('message', message => {
@@ -248,7 +249,7 @@ client.on('message', message => {
                                                                 }
                                                                 DEBUGLOG(`OUT START Ended lot! Key sended to (${winNum}/${rows.length})[${user.id}][${user.username}] [${inId}]`);
                                                                 messagelot.edit(LotteryEmbed.setColor(botstr.start_color_LotteryStopped));
-                                                                message.channel.send(botfn.getText(botstr.start_text_LotteryStoppedSuccess, [strshow, `<@${user.id}>`]));
+                                                                message.channel.send(botfn.getText(`${botstr.start_text_LotteryStoppedSuccess} ${botstr.getkey_text_KeyFoundSendChannel}`, [strshow, `<@${user.id}>`]));
                                                                 user.send(botfn.getText(botstr.getkey_text_KeyFoundSendUser, [row.NameOfGame, row.GameKey, `<@${row.discord_id}>`]));
                                                             }
                                                         });
