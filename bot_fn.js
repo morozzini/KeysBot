@@ -517,14 +517,12 @@ module.exports.getStartEmbed = function (InParam = "") {
 }
 
 module.exports.getAboutEmbed = BotAvatarUrl => {
-    let avatarUrl = BotAvatarUrl?BotAvatarUrl:`https://cdn.discordapp.com/embed/avatars/0.png`;
-    
     return {
         "title": "Бот для раздачи ключей.",
         "description": "Этот бот предназначен для раздачи ключей, которые пользователи сами добавляют.\nЧтобы узнать доступные команды отправь боту команду __help__.",
         "color": 614259,
         "thumbnail": {
-            "url": avatarUrl
+            "url": BotAvatarUrl || `https://cdn.discordapp.com/embed/avatars/0.png`
         },
         "fields": [
             {
