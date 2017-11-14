@@ -1,6 +1,6 @@
 
 const DEBUG = true;
-const BOTVERSION = "Keys Bot v.0.0.4a";
+const BOTVERSION = "Keys Bot v.0.0.4b";
 
 const config = require('./config.json');
 const botfn = require('./bot_fn');
