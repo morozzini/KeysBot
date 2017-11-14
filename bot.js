@@ -1,6 +1,6 @@
 
 const DEBUG = true;
-const BOTVERSION = "Bot v.0.0.3a";
+const BOTVERSION = "Keys Bot v.0.0.4a";
 
 const config = require('./config.json');
 const botfn = require('./bot_fn');
@@ -21,8 +21,54 @@ client.on('ready', () => {
     db.run("CREATE TABLE IF NOT EXISTS gamekeys (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, discord_id, discord_nickname, discord_channel, NameOfGame, GameKey, getdiscord_id, getdiscord_nickname)");
     db.run("CREATE TABLE IF NOT EXISTS authors (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, discord_id, discord_channel, discord_nickname)");
     db.run("CREATE TABLE IF NOT EXISTS lottery (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, lotkey_id, lotmessage_id, discord_id, discord_channel, discord_nickname)");
-    console.log(`I am ready! ${BOTVERSION}`);
-    //TODO проверка есть-ли запущенные и не прошедшие лотереи
+    console.log(`${new Date().toLocaleString()} I am ready! ${BOTVERSION}`);
+
+    var arrchannels = client.channels.array();
+    for (var i = 0; i < arrchannels.length; i++) {        
+        console.log(`> [${arrchannels[i].guild.name}][(${arrchannels[i].type})${arrchannels[i].name}]`);
+    }
+
+    db.all(`SELECT id,discord_id,discord_channel FROM gamekeys WHERE getdiscord_id="lotrun"`).then(lotrow => {
+        if (lotrow) {
+            if(lotrow.length > 0){
+                DEBUGLOG(`INSIDE After start Found Run Lottery ${lotrow.length}`)
+                db.run(`UPDATE gamekeys SET getdiscord_id="lot" WHERE getdiscord_id="lotrun"`);
+                let users = [];
+
+                for (let i = 0; i < lotrow.length; i++){
+                    if(users.length == 0){
+                        users.push({
+                            userid : lotrow[i].discord_id,
+                            lotid : `${lotrow[i].id}`
+                        });
+                    }
+                    else{
+                        let found = false;
+                        for (let j = 0; j < users.length; j++){
+                            if(users[j].userid == lotrow[i].discord_id){
+                                users[j].lotid += `,${lotrow[i].id}`;
+                                found = true;
+                                break;
+                            }
+                        }
+                        if(!found){
+                            users.push({
+                                userid : lotrow[i].discord_id,
+                                lotid : `${lotrow[i].id}`
+                            });
+                        }
+                    }
+                }
+
+                users.forEach (element => {
+                    client.fetchUser(element.userid).then(user => {
+                        DEBUGLOG(`OUT AFTERSTART Found lottery "${user.username}" [${element.lotid}]`)
+                        user.send(botfn.getText(botstr.err_text_FoundLotteryRunAfterStart, element.lotid));
+                    });
+                });
+            }
+        }
+    });
 });
 
 client.on('message', message => {
@@ -35,22 +81,25 @@ client.on('message', message => {
     }
     if (message.channel.type === "text") {
         if (message.content.startsWith(`${client.user}`)) {
-            var commandfull = botfn.getCommand(message.content);
-            var command = commandfull.match(/^[^\s]+/)[0];
+            var command = botfn.getCommand(message.content);
 
-            if (command === botstr.err_text_Prefix) {
-                DEBUGLOG(`OUT ERROR "${commandfull}"`);
-                message.reply(commandfull);
+            if (command.err) {
+                DEBUGLOG(`OUT ERROR "${command.prm}"`);
+                message.reply(command.prm);
             }
-            else if (command === "help") {
-                DEBUGLOG(`OUT HELP Embed "${commandfull}"`);
-                message.author.send(new Discord.RichEmbed(botfn.getHelp(commandfull)).setFooter(BOTVERSION));
+            else if (command.cmd === "help") {
+                DEBUGLOG(`OUT HELP Embed "${command.prm}"`);
+                message.author.send(new Discord.RichEmbed(botfn.getHelp(command)).setFooter(BOTVERSION));
             }
-            else if (command === "ping") {
+            else if (command.cmd === "ping") {
                 DEBUGLOG(`OUT pong`);
                 message.reply("pong");
             }
-            else if (command === "addme") {
+            else if (command.cmd === "about"){
+                DEBUGLOG(`OUT ABOUT embed "${command.cmd}"`);
+                message.author.send(new Discord.RichEmbed(botfn.getAboutEmbed(client.user.avatarURL)).setFooter(BOTVERSION));
+            }
+            else if (command.cmd === "addme") {
                 db.get(`SELECT id,discord_id,discord_channel FROM authors WHERE discord_id="${message.author.id}"`).then(row => {
                     if (!row) {
                         db.run("INSERT INTO authors (discord_id, discord_channel, discord_nickname) VALUES (?,?,?)", [message.author.id, message.channel.id, message.author.username]);
@@ -77,9 +126,9 @@ client.on('message', message => {
                 //   });
                 // });
             }
-            else if (command === "show") {
+            else if (command.cmd === "show") {
                 var request = "";
-                var inSubCommand = commandfull.substr(5);
+                var inSubCommand = command.prm;
 
                 var jarr = 0;
                 var istart = 0;
@@ -101,6 +150,9 @@ client.on('message', message => {
                 }
                 else if (inSubCommand === "my") {
                     request = `SELECT id,discord_nickname,discord_id,NameOfGame FROM gamekeys WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and getdiscord_id IS NULL`;
+                }
+                else if ((inSubCommand === "lot") || (inSubCommand === "lotrun")){
+                    request = `SELECT id,discord_nickname,discord_id,NameOfGame FROM gamekeys WHERE discord_channel="${message.channel.id}" and getdiscord_id="lotrun"`;
                 }
                 else {
                     request = `SELECT id,discord_nickname,discord_id,NameOfGame FROM gamekeys WHERE discord_channel="${message.channel.id}" and getdiscord_id IS NULL`;
@@ -162,8 +214,8 @@ client.on('message', message => {
                     }
                 });
             }
-            else if (command === "getkey") {
-                var inId = commandfull.match(/\d+$/)[0];
+            else if (command.cmd === "getkey") {
+                var inId = command.id;
                 if (inId != "") {
                     db.get(`SELECT discord_id,NameOfGame,GameKey FROM gamekeys WHERE discord_channel="${message.channel.id}" and id="${inId}" and getdiscord_id IS NULL`).then(row => {
                         if (!row) {
@@ -179,9 +231,9 @@ client.on('message', message => {
                     });
                 }
             }
-            else if (command === "start") {
-                var inId = commandfull.match(/\b\d+\b/)[0];
-                var inTime = commandfull.match(/\d+$/)[0];
+            else if (command.cmd === "start") {
+                var inId = command.id;
+                var inTime = command.time;
                 var TimeStr = botfn.getTimeOutStr(inTime);
 
                 db.get(`SELECT id,discord_nickname,discord_id,NameOfGame FROM gamekeys WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lot"`).then(row => {
@@ -190,7 +242,7 @@ client.on('message', message => {
                         message.channel.send(botstr.err_text_KeyNotFoundForChannel);
                     }
                     else {
-                        db.run(`UPDATE gamekeys SET getdiscord_id="runlot" WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lot"`);
+                        db.run(`UPDATE gamekeys SET getdiscord_id="lotrun" WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lot"`);
 
                         DEBUGLOG(`INSIDE START key Found. start lottery! [${inId}]`);
 
@@ -210,7 +262,7 @@ client.on('message', message => {
 
                                 db.all(`SELECT discord_id FROM lottery WHERE lotmessage_id="${messagelot.id}"`).then(rows => {
                                     if (!rows) {
-                                        db.run(`UPDATE gamekeys SET getdiscord_id="lot" WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="runlot"`);
+                                        db.run(`UPDATE gamekeys SET getdiscord_id="lot" WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lotrun"`);
                                         DEBUGLOG(`OUT START Ended lottery! Not checked (not emoji) (!rows) [${inId}]`);
                                         messagelot.edit(LotteryEmbed.setColor(botstr.start_color_LotteryStopped));
                                         message.channel.send(botfn.getText(botstr.start_text_LotteryStoppedNoReaction, strshow));
@@ -218,7 +270,7 @@ client.on('message', message => {
                                     else {
                                         if (rows.length === 0) {
                                             DEBUGLOG(`OUT START Ended lottery! Not checked (not emoji) [${inId}]`);
-                                            db.run(`UPDATE gamekeys SET getdiscord_id="lot" WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="runlot"`);
+                                            db.run(`UPDATE gamekeys SET getdiscord_id="lot" WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lotrun"`);
                                             messagelot.edit(LotteryEmbed.setColor(botstr.start_color_LotteryStopped));
                                             message.channel.send(botfn.getText(botstr.start_text_LotteryStoppedNoReaction, strshow));
                                         }
@@ -226,14 +278,14 @@ client.on('message', message => {
                                             var winNum = Math.floor(Math.random() * rows.length);
                                             db.get(`SELECT id,discord_id,discord_nickname FROM lottery WHERE lotmessage_id="${messagelot.id}" and discord_id="${rows[winNum].discord_id}"`).then(urow => {
                                                 if (!urow) {
-                                                    db.run(`UPDATE gamekeys SET getdiscord_id="lot" WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="runlot"`);
+                                                    db.run(`UPDATE gamekeys SET getdiscord_id="lot" WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lotrun"`);
                                                     DEBUGLOG(`OUT START ERROR Ended lottery! (!urow) [${inId}]`);
                                                     messagelot.edit(LotteryEmbed.setColor(botstr.start_color_LotteryStopped));
                                                     message.channel.send(botstr.err_text_LotteryRandom);
                                                 }
                                                 else {
                                                     client.fetchUser(urow.discord_id).then(user => {
-                                                        db.get(`SELECT id,discord_nickname,discord_id,NameOfGame,GameKey FROM gamekeys WHERE discord_channel="${message.channel.id}" and id="${inId}" and getdiscord_id="runlot"`).then(row => {
+                                                        db.get(`SELECT id,discord_nickname,discord_id,NameOfGame,GameKey FROM gamekeys WHERE discord_channel="${message.channel.id}" and id="${inId}" and getdiscord_id="lotrun"`).then(row => {
                                                             if (!row) {
                                                                 DEBUGLOG(`OUT START ERROR Ended lot! Not found lottery id in base (!row) [${inId}]`);
                                                                 messagelot.edit(LotteryEmbed.setColor(botstr.start_color_LotteryStopped));
@@ -271,9 +323,9 @@ client.on('message', message => {
                     }
                 });
             }
-            else if (command === "stop") {
-                var inId = commandfull.match(/\d+$/)[0];
-                db.get(`SELECT id,discord_nickname,discord_id,NameOfGame FROM gamekeys WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="runlot"`).then(row => {
+            else if (command.cmd === "stop") {
+                var inId = command.id;
+                db.get(`SELECT id,discord_nickname,discord_id,NameOfGame FROM gamekeys WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lotrun"`).then(row => {
                     if (!row) {
                         DEBUGLOG(`OUT STOP Key not Found. (!row)[${inId}]`);
                         message.reply(botfn.getText(botstr.err_text_LotteryStopped, inId));
@@ -301,7 +353,7 @@ client.on('message', message => {
 
                         DEBUGLOG(`OUT STOP Key Found. Stopped [${inId}]`);
 
-                        db.run(`UPDATE gamekeys SET getdiscord_id="lot" WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="runlot"`);
+                        db.run(`UPDATE gamekeys SET getdiscord_id="lot" WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lotrun"`);
                         if (LotMsg) {
                             LotMsg.edit(LotEmb.setColor(botstr.start_color_LotteryStopped));
                         }
@@ -311,30 +363,29 @@ client.on('message', message => {
                 });
             }
             else {
-                DEBUGLOG(`OUT ERROR Command not found! "${command}"`);
-                message.reply(botfn.getText(botstr.err_text_WrongUseCommandOrUnknownCommand, command));
+                DEBUGLOG(`OUT ERROR Command not found! "${command.cmd}"`);
+                message.reply(botfn.getText(botstr.err_text_WrongUseCommandOrUnknownCommand, command.cmd));
             }
         }
     }
     else if (message.channel.type === "dm") {
-        var commandfull = botfn.getCommand(message.content);
-        var command = commandfull.match(/^[^\s]+/)[0];
+        var command = botfn.getCommand(message.content);
 
-        if (command === botstr.err_text_Prefix) {
-            DEBUGLOG(`OUT ERROR "${commandfull}"`);
-            message.reply(commandfull);
+        if (command.err) {
+            DEBUGLOG(`OUT ERROR "${command.prm}"`);
+            message.reply(command.prm);
         }
-        else if (command === "help") {
-            DEBUGLOG(`OUT HELP embed "${commandfull}"`);
-            message.author.send(new Discord.RichEmbed(botfn.getHelp(commandfull)).setFooter(BOTVERSION));
-        }
-        else if (command === "shorthelp") {
-            DEBUGLOG(`OUT SHORTHELP`);
+        else if (command.cmd === "help") {
+            DEBUGLOG(`OUT HELP embed "${command.prm}"`);
             message.author.send(new Discord.RichEmbed(botfn.getHelp(command)).setFooter(BOTVERSION));
         }
-        else if (command === "ping") {
+        else if (command.cmd === "ping") {
             DEBUGLOG(`OUT pong"`);
             message.author.send("pong");
+        }
+        else if (command.cmd === "about"){
+            DEBUGLOG(`OUT ABOUT embed "${command.cmd}"`);
+            message.author.send(new Discord.RichEmbed(botfn.getAboutEmbed(client.user.avatarURL)).setFooter(BOTVERSION));
         }
         else {
             //Команды требующие предварительной авторизации
@@ -343,9 +394,9 @@ client.on('message', message => {
                     DEBUGLOG(`OUT You not in base. Send addme`);
                     message.reply(botstr.err_text_NotFoundInAuthorBase);
                 }
-                else if (command === "show") {
+                else if (command.cmd === "show") {
                     var request = "";
-                    var inSubCommand = commandfull.substr(5);
+                    var inSubCommand = command.prm;
 
                     var jarr = 0;
                     var istart = 0;
@@ -362,8 +413,11 @@ client.on('message', message => {
                             }
                         }
                         else {
-                            request = `SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and (getdiscord_id IS NULL or getdiscord_id="lot" or getdiscord_id="runlot")`;
+                            request = `SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and (getdiscord_id IS NULL or getdiscord_id="lot" or getdiscord_id="lotrun")`;
                         }
+                    }
+                    else if (inSubCommand === "my"){
+                        request = `SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and discord_channel="${arow.discord_channel}" and (getdiscord_id IS NULL or getdiscord_id="lot" or getdiscord_id="lotrun")`;
                     }
                     else if (inSubCommand === "key") {
                         request = `SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and (getdiscord_id IS NULL)`;
@@ -372,10 +426,10 @@ client.on('message', message => {
                         request = `SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and (getdiscord_id="lot")`;
                     }
                     else if (inSubCommand === "lotrun") {
-                        request = `SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and (getdiscord_id="runlot")`;
+                        request = `SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and (getdiscord_id="lotrun")`;
                     }
                     else {
-                        request = `SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and (getdiscord_id IS NULL or getdiscord_id="lot" or getdiscord_id="runlot")`;
+                        request = `SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and (getdiscord_id IS NULL or getdiscord_id="lot" or getdiscord_id="lotrun")`;
                     }
 
                     if (istart == 0) {
@@ -402,7 +456,7 @@ client.on('message', message => {
                                     if (row[i].getdiscord_id === "lot") {
                                         strshow += `${botfn.getText(botstr.show_text_FormatNameKey, [row[i].id, row[i].NameOfGame, row[i].GameKey, `${showprefix}(L)`])}\n`;
                                     }
-                                    else if (row[i].getdiscord_id === "runlot") {
+                                    else if (row[i].getdiscord_id === "lotrun") {
                                         strshow += `${botfn.getText(botstr.show_text_FormatNameKey, [row[i].id, row[i].NameOfGame, row[i].GameKey, `${showprefix}(R)`])}\n`;
                                     }
                                     else {
@@ -439,31 +493,47 @@ client.on('message', message => {
                             }
                             else {
                                 DEBUGLOG(`OUT SHOW Found key.`);
-                                message.reply(botfn.getText(botstr.show_text_KeyFound, strshow));
+                                //message.reply(botfn.getText(botstr.show_text_KeyFound, strshow));
+                                message.author.send(botfn.getText(botstr.show_text_KeyFound, strshow));
                             }
                         }
                     });
                 }
-                else if (command === "addkey") {
-                    var inGameKey = commandfull.match(/[^\s]+$/)[0];
-                    var inGameName = commandfull.substr(6, commandfull.lastIndexOf(" ") - 6).trim();
-
+                else if (command.cmd === "add") {
+                    var inGameKey = command.key;
+                    var inGameName = command.name;
+                    var request = "";
+                    let lott = command.prm == `lot`?`lot`:null;
+                    
                     if ((inGameKey != "") && (inGameName != "")) {
-                        db.get(`SELECT id,NameOfGame,GameKey FROM gamekeys WHERE discord_id="${message.author.id}" and NameOfGame="${inGameName}" and GameKey="${inGameKey}" and getdiscord_id IS NULL`).then(row => {
+                        db.get(`SELECT id,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and NameOfGame="${inGameName}" and GameKey="${inGameKey}"`).then(row => {
                             if (!row) {
-                                db.run("INSERT INTO gamekeys (discord_id, discord_nickname, discord_channel, NameOfGame, GameKey) VALUES (?,?,?,?,?)", [message.author.id, message.author.username, arow.discord_channel, inGameName, inGameKey]);
-                                db.get("SELECT id,NameOfGame,GameKey FROM gamekeys WHERE rowid=last_insert_rowid()").then(row => {
-                                    DEBUGLOG(`OUT ADDKEY added key. ${row.id}. [${row.NameOfGame}][${row.GameKey}]`);
-                                    //message.reply("```Markdown\n# Добавлено\n"+row.id+". ["+row.NameOfGame+"]["+row.GameKey+"]```");
-                                    strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey]))}`;
-                                    message.reply(botfn.getText(botstr.addkey_text_AddKeySuccess, strshow));
+                                db.run("INSERT INTO gamekeys (discord_id, discord_nickname, discord_channel, NameOfGame, GameKey, getdiscord_id) VALUES (?,?,?,?,?,?)", [message.author.id, message.author.username, arow.discord_channel, inGameName, inGameKey, lott]);
+                                db.get("SELECT id,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE rowid=last_insert_rowid()").then(addrow => {
+                                    if(addrow.getdiscord_id == "lot"){
+                                        strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [addrow.id, addrow.NameOfGame, addrow.GameKey, `(L)`]))}`;
+                                        DEBUGLOG(`OUT ADD added lot. ${strshow}`);
+                                        message.reply(botfn.getText(botstr.addlot_text_AddKeySuccess, strshow));
+                                    }
+                                    else{
+                                        strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [addrow.id, addrow.NameOfGame, addrow.GameKey]))}`;
+                                        DEBUGLOG(`OUT ADD added key. ${strshow}`);
+                                        message.reply(botfn.getText(botstr.addkey_text_AddKeySuccess, strshow));
+                                    }
+                                    
                                 });
                             }
                             else {
-                                DEBUGLOG(`OUT ADDKEY ERROR err Added key. Found ${row.id}. [${row.NameOfGame}][${row.GameKey}]`);
-                                //message.reply("```Markdown\n# Ошибка! Такая запись уже есть\n"+row.id+". ["+row.NameOfGame+"]["+row.GameKey+"]```");
-                                strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey]))}`;
-                                message.reply(botfn.getText(botstr.addkey_text_AddKeyFound, strshow));
+                                if(row.getdiscord_id == "lot"){
+                                    strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey, `(L)`]))}`;
+                                    DEBUGLOG(`OUT ADDKEY ERROR err Added lot. Found ${strshow}`);
+                                    message.reply(botfn.getText(botstr.addlot_text_AddKeyFound, strshow));
+                                }
+                                else{
+                                    strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey]))}`;
+                                    DEBUGLOG(`OUT ADDKEY ERROR err Added key. Found ${strshow}`);
+                                    message.reply(botfn.getText(botstr.addkey_text_AddKeyFound, strshow));
+                                }
                             }
                         });
                         // .catch(()=>{
@@ -479,65 +549,50 @@ client.on('message', message => {
                         // });
                     }
                 }
-                else if (command === "addlot") {
-                    var inGameKey = commandfull.match(/[^\s]+$/)[0];
-                    var inGameName = commandfull.substr(6, commandfull.lastIndexOf(" ") - 6).trim();
-
-                    if ((inGameKey != "") && (inGameName != "")) {
-                        db.get(`SELECT id,NameOfGame,GameKey FROM gamekeys WHERE discord_id="${message.author.id}" and NameOfGame="${inGameName}" and GameKey="${inGameKey}" and getdiscord_id="lot"`).then(row => {
-                            if (!row) {
-                                db.run("INSERT INTO gamekeys (discord_id, discord_nickname, discord_channel, NameOfGame, GameKey, getdiscord_id) VALUES (?,?,?,?,?,?)", [message.author.id, message.author.username, arow.discord_channel, inGameName, inGameKey, "lot"]);
-                                db.get("SELECT id,NameOfGame,GameKey FROM gamekeys WHERE rowid=last_insert_rowid()").then(row => {
-                                    DEBUGLOG(`OUT ADDLOT Added lotkey. ${row.id}. [${row.NameOfGame}][${row.GameKey}]`);
-                                    strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey, `(L)`]))}`;
-                                    message.reply(botfn.getText(botstr.addlot_text_AddKeySuccess, strshow));
-                                });
-                            }
-                            else {
-                                DEBUGLOG(`OUT ADDLOT ERROR err Added lotkey. Found ${row.id}. [${row.NameOfGame}][${row.GameKey}]`);
-                                strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey, `(L)`]))}`;
-                                message.reply(botfn.getText(botstr.addlot_text_AddKeyFound, strshow));
-                            }
-                        });
-                    }
-                }
-                else if (command === "dellot") {
-                    var inId = commandfull.match(/\d+$/)[0];
+                else if (command.cmd === "set") {
+                    var inId = command.id;
+                    var lott = command.prm == `lot`?true:false;
 
                     if (inId != "") {
-                        db.get(`SELECT id,NameOfGame,GameKey FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lot"`).then(row => {
+                        db.get(`SELECT id,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and (getdiscord_id IS NULL or getdiscord_id="lot")`).then(row => {
                             if (!row) {
-                                DEBUGLOG(`OUT DELLOT Del lotkey not found. (!row)[${inId}]`);
-                                message.reply(botfn.getText(botstr.err_text_IndexKeyLotteryNotFound, inId));
+                                DEBUGLOG(`OUT SETKEY ERROR id Not Found. (!row) [${inId}]`);
+                                message.reply(botstr.err_text_KeyNotFound);
                             }
                             else {
-                                db.run(`DELETE FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lot"`);
-                                DEBUGLOG(`OUT DELLOT Deleted lotkey. [${inId}]`);
-                                strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey, `(L)`]))}`;
-                                message.reply(botfn.getText(botstr.dellot_text_DelKeySuccess, strshow));
+                                if (row.getdiscord_id === `lot`){
+                                    if (!lott){
+                                        db.run(`UPDATE gamekeys SET getdiscord_id=NULL WHERE discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lot"`);
+                                        strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey]))}`;
+                                        DEBUGLOG(`OUT SETKEY Found. update. [${inId}]`);
+                                        message.reply(botfn.getText(botstr.setkey_text_UpdateKeySuccess, strshow));
+                                    }
+                                    else{
+                                        strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey, `(L)`]))}`;
+                                        DEBUGLOG(`OUT SETKEY Found. not update. [${inId}]`);
+                                        message.reply(botfn.getText(botstr.setlot_text_UpdateKeyFound, strshow));
+                                    }
+                                }
+                                else if (row.getdiscord_id !== `lot`){
+                                    if (lott){
+                                        db.run(`UPDATE gamekeys SET getdiscord_id="lot" WHERE discord_id="${message.author.id}" and id="${inId}" and getdiscord_id IS NULL`);
+                                        strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey, `(L)`]))}`;
+                                        DEBUGLOG(`OUT SETLOT Found. Update. [${inId}]`);
+                                        message.reply(botfn.getText(botstr.setlot_text_UpdateKeySuccess, strshow));
+                                    }
+                                    else{
+                                        strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey]))}`;
+                                        DEBUGLOG(`OUT SETKEY Found. not update. [${inId}]`);
+                                        message.reply(botfn.getText(botstr.setkey_text_UpdateKeyFound, strshow));
+                                    }
+                                }
                             }
                         });
                     }
                 }
-                else if (command === "delkey") {
-                    var inId = commandfull.match(/\d+$/)[0];
-                    if (inId != "") {
-                        db.get(`SELECT id,NameOfGame,GameKey FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and getdiscord_id IS NULL`).then(row => {
-                            if (!row) {
-                                DEBUGLOG(`OUT DELKEY Del key not found. (!row)[${inId}]`);
-                                message.reply(botfn.getText(botstr.err_text_IndexKeyNotFound, inId));
-                            }
-                            else {
-                                db.run(`DELETE FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and getdiscord_id IS NULL`);
-                                DEBUGLOG(`OUT DELKEY Deleted key. [${inId}]`);
-                                strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey]))}`;
-                                message.reply(botfn.getText(botstr.delkey_text_DelKeySuccess, strshow));
-                            }
-                        });
-                    }
-                }
-                else if (command === "del") {
-                    var inId = commandfull.match(/\d+$/)[0];
+                else if (command.cmd === "del") {
+                    var inId = command.id;
+                    
                     if (inId != "") {
                         db.get(`SELECT id,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and (getdiscord_id IS NULL or getdiscord_id="lot")`).then(row => {
                             if (!row) {
@@ -560,55 +615,7 @@ client.on('message', message => {
                         });
                     }
                 }
-                else if (command === "setkey") {
-                    var inId = commandfull.match(/\d+$/)[0];
-                    if (inId != "") {
-                        db.get(`SELECT id,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and (getdiscord_id IS NULL or getdiscord_id="lot")`).then(row => {
-                            if (!row) {
-                                DEBUGLOG(`OUT SETKEY ERROR id Not Found. (!row) [${inId}]`);
-                                message.reply(botfn.getText(botstr.err_text_IndexKeyLotteryNotFound, inId));
-                            }
-                            else {
-                                if (row.getdiscord_id === "lot") {
-                                    db.run(`UPDATE gamekeys SET getdiscord_id=NULL WHERE discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lot"`);
-                                    DEBUGLOG(`OUT SETKEY Found. update. [${inId}]`);
-                                    strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey]))}`;
-                                    message.reply(botfn.getText(botstr.setkey_text_UpdateKeySuccess, strshow));
-                                }
-                                else {
-                                    DEBUGLOG(`OUT SETKEY Found. not update. [${inId}]`);
-                                    strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey]))}`;
-                                    message.reply(botfn.getText(botstr.setkey_text_UpdateKeyFound, strshow));
-                                }
-                            }
-                        });
-                    }
-                }
-                else if (command === "setlot") {
-                    var inId = commandfull.match(/\d+$/)[0];
-                    if (inId != "") {
-                        db.get(`SELECT id,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and (getdiscord_id IS NULL or getdiscord_id="lot")`).then(row => {
-                            if (!row) {
-                                DEBUGLOG(`OUT SETLOT ERROR id Not Found. (!row) [${inId}]`);
-                                message.reply(botfn.getText(botstr.err_text_IndexKeyNotFound, inId));
-                            }
-                            else {
-                                if (row.getdiscord_id === "lot") {
-                                    DEBUGLOG(`OUT SETLOT Found. Not Update. [${inId}]`);
-                                    strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey, `(L)`]))}`;
-                                    message.reply(botfn.getText(botstr.setlot_text_UpdateKeyFound, strshow));
-                                }
-                                else {
-                                    db.run(`UPDATE gamekeys SET getdiscord_id="lot" WHERE discord_id="${message.author.id}" and id="${inId}" and getdiscord_id IS NULL`);
-                                    DEBUGLOG(`OUT SETLOT Found. Update. [${inId}]`);
-                                    strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey, `(L)`]))}`;
-                                    message.reply(botfn.getText(botstr.setlot_text_UpdateKeySuccess, strshow));
-                                }
-                            }
-                        });
-                    }
-                }
-                else if (command === "whereme") {
+                else if (command.cmd === "whereme") {
                     var channelfound = false;
                     var arrchannels = client.channels.array();
 
@@ -626,8 +633,8 @@ client.on('message', message => {
                     }
                 }
                 else {
-                    DEBUGLOG(`OUT ERROR. Command not found! "${command}"`);
-                    message.reply(botfn.getText(botstr.err_text_WrongUseCommandOrUnknownCommand, command));
+                    DEBUGLOG(`OUT ERROR. Command not found! "${command.cmd}"`);
+                    message.reply(botfn.getText(botstr.err_text_WrongUseCommandOrUnknownCommand, command.cmd));
                 }
             });
         }

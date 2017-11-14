@@ -2,7 +2,7 @@
 Discord bot.
 
 ## Config
-Set your config in config.json
+Set your config in config.json  
 **token** - The token of your bot - [get here](https://discordapp.com/developers/applications/me)
 
 ## Need Install
@@ -15,6 +15,7 @@ Set your config in config.json
 node bot.js
 ```
 
-Using link:
-[Docker.js Documentation](https://discord.js.org/#/docs/main/stable/general/welcome)
+Using link:  
+[Discord API Documentation](https://discordapp.com/developers/docs/intro)  
+[Discord.js Documentation](https://discord.js.org/#/docs/main/stable/general/welcome)  
 [Discord.js Getting Started](https://anidiots.guide/)

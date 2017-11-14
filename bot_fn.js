@@ -7,7 +7,7 @@ module.exports.getCommand = instr => {
     var command={err : false};
 
     let clearstr = instr.trim().replace(/^<@\d{18}>,?\s*/, "").replace(/\s{2,}/g, " ");;
-    let splstr = clearstr.split(/\s+/);;
+    let splstr = clearstr.split(/\s+/);
     
     let isHelp = false;
     let helpPrm = "";
@@ -36,7 +36,7 @@ module.exports.getCommand = instr => {
                     command.prm = comm.prm;
                 }
             }
-            else if (/^add(key|lot)$/.test(command.cmd)){
+            else if (/^add$/.test(command.cmd)){
                 if (!(`name` in command)){
                     command.name = `${splstr[i]}`;
                 }
@@ -59,7 +59,7 @@ module.exports.getCommand = instr => {
             else if((`cmd` in command) && !(`prm` in command) && (!checkCommand(`${command.cmd}${splstr[i]}`).err)){
                 command.prm = splstr[i];
             }
-            else if (/^(getkey|del|(del|set)(key|lot)|stop)$/.test(command.cmd)){
+            else if (/^(getkey|del|set|stop)$/.test(command.cmd)){
                 if(/^\d+$/.test(splstr[i])){
                     if(!(`id` in command)){
                         command.id = splstr[i];
@@ -103,7 +103,7 @@ module.exports.getCommand = instr => {
                     command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, command.cmd)}`;
                 }
             }
-            else if (/^add(key|lot)$/.test(command.cmd)){
+            else if (/^add$/.test(command.cmd)){
                 if (!(`name` in command)){
                     command.name = `${splstr[i]}`;
                 }
@@ -126,7 +126,7 @@ module.exports.getCommand = instr => {
         }
     }
 
-    if(!command.err && /^(getkey|del|(del|set)(key|lot)|stop)$/.test(command.cmd)){
+    if(!command.err && /^(getkey|del|set|stop)$/.test(command.cmd)){
         if(!(`id` in command)){
             command.err = true;
             command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, [command.cmd,` (${botstr.err_text_WrongUseCommand_UnsetIndex})`])}`;
@@ -146,7 +146,7 @@ module.exports.getCommand = instr => {
             command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, [command.cmd,` (${botstr.err_text_WrongUseCommand_WrongTime})`])}`;
         }
     }
-    else if(!command.err && /^add(key|lot)$/.test(command.cmd)){
+    else if(!command.err && /^add$/.test(command.cmd)){
         if(!(`name` in command)){
             command.err = true;
             command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, [command.cmd,`(${botstr.err_text_WrongUseCommand_UnsetName})`])}`;
@@ -203,6 +203,12 @@ function checkCommand(instr){
         command = `help`;
         param = `short`;
     }
+    else if (/^about$/.test(instrL)) {
+        command = `about`;
+    }
+    else if (/^ping$/.test(instrL)) {
+        command = `ping`;
+    }
     else if (/^addme$/.test(instrL)){
         command = `addme`;
     }
@@ -217,44 +223,42 @@ function checkCommand(instr){
     }
     else if (/^(showmy|showm|shm|sm)$/.test(instrL)){
         command = `show`;
-        param = `my`
+        param = `my`;
     }
     else if (/^(showkey|showk|shk|sk)$/.test(instrL)){
         command = `show`;
-        param = `key`
+        param = `key`;
     }
     else if (/^(showlot|showl|shl|sl)$/.test(instrL)){
         command = `show`;
-        param = `lot`
+        param = `lot`;
     }
     else if (/^(showlotrun|showlr|shlr|slr)$/.test(instrL)){
         command = `show`;
-        param = `lotrun`
+        param = `lotrun`;
     }
     else if (/^(shownext|shown|shn|sn)$/.test(instrL)){
         command = `show`;
-        param = `next`
+        param = `next`;
     }
     else if (/^(addkey|ak)$/.test(instrL)){
-        command = `addkey`;
+        command = `add`;
+        param = `key`;
     }
     else if (/^(addlot|al)$/.test(instrL)){
-        command = `addlot`;
+        command = `add`;
+        param = `lot`;
     }
-    else if (/^(setkey|sk)$/.test(instrL)){
-        command = `setkey`;
+    else if (/^(setkey|setk|stk)$/.test(instrL)){
+        command = `set`;
+        param = `key`
     }
-    else if (/^(setlot|sl)$/.test(instrL)){
-        command = `setlot`;
+    else if (/^(setlot|setl|stl)$/.test(instrL)){
+        command = `set`;
+        param = `lot`
     }
     else if (/^(del)$/.test(instrL)){
         command = `del`;
-    }
-    else if (/^(delkey|dk)$/.test(instrL)){
-        command = `delkey`;
-    }
-    else if (/^(dellot|dl)$/.test(instrL)){
-        command = `dellot`;
     }
     else if (/^(start|lottery)$/.test(instrL)){
         command = `start`;
@@ -411,7 +415,8 @@ module.exports.getHelp =  incmd => {
 
     switch (command) {
         case "short":
-            return { description: `${botstr.help_text_ShortHelp}` };
+            //return { description: `${botstr.help_text_ShortHelp}` };
+            return this.getHelpShortEmbed();
             break;
         case "addme":
             return this.getHelpEmbed("addme", botstr.help_text_Addme);
@@ -455,12 +460,6 @@ module.exports.getHelp =  incmd => {
         case "del":
             return this.getHelpEmbed("del", botstr.help_text_Del);
             break;
-        case "delkey":
-            return this.getHelpEmbed("delkey", botstr.help_text_Delkey);
-            break;
-        case "dellot":
-            return this.getHelpEmbed("dellot", botstr.help_text_Dellot);
-            break;
         case "start":
             return this.getHelpEmbed("start", botstr.help_text_Start);
             break;
@@ -479,6 +478,37 @@ module.exports.getHelpEmbed = function (Command = "", TextStr = "") {
     };
 }
 
+module.exports.getHelpShortEmbed = () => {
+    let ArrShortStr = botstr.help_text_ShortHelp.split(`|`);
+    /*/
+    let embed = {"fields" : []};
+    for (let i = 0; i < ArrShortStr.length; i+=2){
+        embed.fields.push({
+            "name" : ArrShortStr[i],
+            "value" : ArrShortStr[i+1]
+        })
+    }
+    //* /
+    let embed = {"description" : ""};
+    embed.description = "```Markdown\n";
+    for (let i = 0; i < ArrShortStr.length; i+=2){
+        embed.description += `* ${ArrShortStr[i]}\n> ${ArrShortStr[i+1]}\n`;
+    }
+    embed.description += "```";
+    //*/
+    let embed = {"description" : ""};
+    for (let i = 0; i < ArrShortStr.length; i+=2){
+        embed.description += `\`${ArrShortStr[i]}\` - ${ArrShortStr[i+1]}\n`;
+    }
+    /*/
+    let embed = {"description" : ""};
+    for (let i = 0; i < ArrShortStr.length; i+=2){
+        embed.description += `**${ArrShortStr[i]}** - ${ArrShortStr[i+1]}\n`;
+    }
+    //*/
+    return embed;
+}
+
 module.exports.getStartEmbed = function (InParam = "") {
     return {
         title: botstr.start_text_LotteryStartedTitle,
@@ -486,3 +516,29 @@ module.exports.getStartEmbed = function (InParam = "") {
     }
 }
 
+module.exports.getAboutEmbed = BotAvatarUrl => {
+    let avatarUrl = BotAvatarUrl?BotAvatarUrl:`https://cdn.discordapp.com/embed/avatars/0.png`;
+    
+    return {
+        "title": "Бот для раздачи ключей.",
+        "description": "Этот бот предназначен для раздачи ключей, которые пользователи сами добавляют.\nЧтобы узнать доступные команды отправь боту команду __help__.",
+        "color": 614259,
+        "thumbnail": {
+            "url": avatarUrl
+        },
+        "fields": [
+            {
+                "name": "Исходный код",
+                "value": "[GitHub](https://github.com/morozzini/KeysBot)"
+            },
+            {
+                "name": "Разработчик",
+                "value": "morozzini#7238"
+            },
+            {
+                "name": "Тестеры",
+                "value": "Den1sArt#5682, Jarek#3024, Templar Tassadar#3103, "
+            }
+        ]
+    }
+}
