@@ -56,14 +56,11 @@ module.exports.addkey_text_AddKeyFound                  = "Такой ключ �
 module.exports.addlot_text_AddKeySuccess                = "Лотерейный ключ добавлен.\n${}";
 module.exports.addlot_text_AddKeyFound                  = "Такой лотерейный ключ уже есть.\n${}";
 
-module.exports.delkey_text_DelKeySuccess                = "Ключ удален\n${}";
-module.exports.dellot_text_DelKeySuccess                = "Лотерейный ключ удален\n${}";
+module.exports.del_text_DelSuccess_OneKey               = "Ключ удален\n${}";
+module.exports.del_text_DelSuccess_ManyKeys             = "Ключи удалены\n${}";
 
-module.exports.setkey_text_UpdateKeySuccess             = "Ключ обновлен\n${}";
-module.exports.setkey_text_UpdateKeyFound               = "Ключ уже добавлен\n${}";
-
-module.exports.setlot_text_UpdateKeySuccess             = "Лотерейный ключ обновлен\n${}";
-module.exports.setlot_text_UpdateKeyFound               = "Лотерейный ключ уже добавлен\n${}";
+module.exports.set_text_UpdateKeySuccess_OneKey         = "Ключ обновлен\n${}";
+module.exports.set_text_UpdateKeySuccess_ManyKeys       = "Ключи обновлены\n${}";
 
 module.exports.whereme_text_FoundSuccess                = "Ты зарегистрирован на сервере \"${0}\" канал \"${1}\"";
 

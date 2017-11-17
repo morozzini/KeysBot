@@ -24,7 +24,7 @@ client.on('ready', () => {
     console.log(`${new Date().toLocaleString()} I am ready! ${BOTVERSION}`);
 
     var arrchannels = client.channels.array();
-    for (var i = 0; i < arrchannels.length; i++) {        
+    for (var i = 0; i < arrchannels.length; i++) {
         console.log(`> [${arrchannels[i].guild.name}][(${arrchannels[i].type})${arrchannels[i].name}]`);
     }
 
@@ -552,38 +552,45 @@ client.on('message', message => {
                 else if (command.cmd === "set") {
                     var inId = command.id;
                     var lott = command.prm == `lot`?true:false;
+                    var reqId = botfn.getIdRequest(inId);
 
                     if (inId != "") {
-                        db.get(`SELECT id,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and (getdiscord_id IS NULL or getdiscord_id="lot")`).then(row => {
+                        db.all(`SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE (${reqId}) and discord_id="${message.author.id}" and (getdiscord_id IS NULL or getdiscord_id="lot")`).then(row => {
                             if (!row) {
                                 DEBUGLOG(`OUT SETKEY ERROR id Not Found. (!row) [${inId}]`);
                                 message.reply(botstr.err_text_KeyNotFound);
                             }
                             else {
-                                if (row.getdiscord_id === `lot`){
-                                    if (!lott){
-                                        db.run(`UPDATE gamekeys SET getdiscord_id=NULL WHERE discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lot"`);
-                                        strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey]))}`;
-                                        DEBUGLOG(`OUT SETKEY Found. update. [${inId}]`);
-                                        message.reply(botfn.getText(botstr.setkey_text_UpdateKeySuccess, strshow));
+                                
+                                if(lott){
+                                    db.run(`UPDATE gamekeys SET getdiscord_id="lot" WHERE (${reqId}) and discord_id="${message.author.id}" and getdiscord_id IS NULL`);
+                                }
+                                else{
+                                    db.run(`UPDATE gamekeys SET getdiscord_id=NULL WHERE (${reqId}) and discord_id="${message.author.id}" and getdiscord_id="lot"`);
+                                }
+
+                                var strshow = "";
+                                for (var i = 0; i < row.length; i++) {
+                                    showprefix = row[i].discord_channel != arow.discord_channel ? "*" : "";
+
+                                    if (lott){
+                                        strshow += `${botfn.getText(botstr.show_text_FormatNameKey, [row[i].id, row[i].NameOfGame, row[i].GameKey, `${showprefix}(L)`])}\n`;
                                     }
                                     else{
-                                        strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey, `(L)`]))}`;
-                                        DEBUGLOG(`OUT SETKEY Found. not update. [${inId}]`);
-                                        message.reply(botfn.getText(botstr.setlot_text_UpdateKeyFound, strshow));
+                                        strshow += `${botfn.getText(botstr.show_text_FormatNameKey, [row[i].id, row[i].NameOfGame, row[i].GameKey, `${showprefix}`])}\n`;
                                     }
                                 }
-                                else if (row.getdiscord_id !== `lot`){
-                                    if (lott){
-                                        db.run(`UPDATE gamekeys SET getdiscord_id="lot" WHERE discord_id="${message.author.id}" and id="${inId}" and getdiscord_id IS NULL`);
-                                        strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey, `(L)`]))}`;
-                                        DEBUGLOG(`OUT SETLOT Found. Update. [${inId}]`);
-                                        message.reply(botfn.getText(botstr.setlot_text_UpdateKeySuccess, strshow));
+                                if (strshow === "") {
+                                    DEBUGLOG(`OUT SET Not found key.`);
+                                    message.reply(botstr.err_text_KeyNotFound);
+                                }
+                                else {
+                                    DEBUGLOG(`OUT SET Found key.`);
+                                    if(row.length > 1){
+                                        message.reply(botfn.getText(botstr.set_text_UpdateKeySuccess_ManyKeys, botfn.getText(botstr.show_text_KeyFound, strshow)));
                                     }
                                     else{
-                                        strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey]))}`;
-                                        DEBUGLOG(`OUT SETKEY Found. not update. [${inId}]`);
-                                        message.reply(botfn.getText(botstr.setkey_text_UpdateKeyFound, strshow));
+                                        message.reply(botfn.getText(botstr.set_text_UpdateKeySuccess_OneKey, botfn.getText(botstr.show_text_KeyFound, strshow)));
                                     }
                                 }
                             }
@@ -592,24 +599,39 @@ client.on('message', message => {
                 }
                 else if (command.cmd === "del") {
                     var inId = command.id;
-                    
+                    var reqId = botfn.getIdRequest(inId);
+
                     if (inId != "") {
-                        db.get(`SELECT id,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and (getdiscord_id IS NULL or getdiscord_id="lot")`).then(row => {
+                        db.all(`SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE (${reqId}) and discord_id="${message.author.id}" and (getdiscord_id IS NULL or getdiscord_id="lot")`).then(row => {
                             if (!row) {
                                 DEBUGLOG(`OUT DEL Del key not found. (!row) [${inId}]`);
                                 message.reply(botfn.getText(botstr.err_text_IndexKeyNotFound, inId));
                             }
                             else {
-                                db.run(`DELETE FROM gamekeys WHERE discord_id="${message.author.id}" and id="${inId}" and (getdiscord_id IS NULL or getdiscord_id="lot")`);
-                                if (row.getdiscord_id === "lot") {
-                                    DEBUGLOG(`OUT DEL Deleted key lot. [${inId}]`);
-                                    strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey, `(L)`]))}`;
-                                    message.reply(botfn.getText(botstr.dellot_text_DelKeySuccess, strshow));
+                                db.run(`DELETE FROM gamekeys WHERE (${reqId}) and discord_id="${message.author.id}" and (getdiscord_id IS NULL or getdiscord_id="lot")`);
+                                var strshow = "";
+                                for (var i = 0; i < row.length; i++) {
+                                    showprefix = row[i].discord_channel != arow.discord_channel ? "*" : "";
+
+                                    if (row[i].getdiscord_id === "lot"){
+                                        strshow += `${botfn.getText(botstr.show_text_FormatNameKey, [row[i].id, row[i].NameOfGame, row[i].GameKey, `${showprefix}(L)`])}\n`;
+                                    }
+                                    else{
+                                        strshow += `${botfn.getText(botstr.show_text_FormatNameKey, [row[i].id, row[i].NameOfGame, row[i].GameKey, `${showprefix}`])}\n`;
+                                    }
+                                }
+                                if (strshow === "") {
+                                    DEBUGLOG(`OUT DEL Not found key.`);
+                                    message.reply(botstr.err_text_KeyNotFound);
                                 }
                                 else {
-                                    DEBUGLOG(`OUT DEL Deleted key. [${inId}]`);
-                                    strshow = `${botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [row.id, row.NameOfGame, row.GameKey]))}`;
-                                    message.reply(botfn.getText(botstr.delkey_text_DelKeySuccess, strshow));
+                                    DEBUGLOG(`OUT DEL Found key.`);
+                                    if(row.length > 1){
+                                        message.reply(botfn.getText(botstr.del_text_DelSuccess_ManyKeys, botfn.getText(botstr.show_text_KeyFound, strshow)));
+                                    }
+                                    else{
+                                        message.reply(botfn.getText(botstr.del_text_DelSuccess_OneKey, botfn.getText(botstr.show_text_KeyFound, strshow)));
+                                    }
                                 }
                             }
                         });

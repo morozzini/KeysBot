@@ -59,7 +59,7 @@ module.exports.getCommand = instr => {
             else if((`cmd` in command) && !(`prm` in command) && (!checkCommand(`${command.cmd}${splstr[i]}`).err)){
                 command.prm = splstr[i];
             }
-            else if (/^(getkey|del|set|stop)$/.test(command.cmd)){
+            else if (/^(getkey|stop)$/.test(command.cmd)){
                 if(/^\d+$/.test(splstr[i])){
                     if(!(`id` in command)){
                         command.id = splstr[i];
@@ -68,6 +68,20 @@ module.exports.getCommand = instr => {
                     else{
                         command.err = true;
                         command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, [command.cmd,` (${botstr.err_text_WrongUseCommand_WrongIndex})`])}`;
+                    }
+                }
+                else{
+                    command.err = true;
+                    command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, command.cmd)}`;
+                }
+            }
+            else if (/^(del|set)$/.test(command.cmd)){
+                if(/^(\d+(-\d+)?,?)+$/.test(splstr[i])){
+                    if(!(`id` in command)){
+                        command.id = splstr[i].replace(/,/g, " ");
+                    }
+                    else{
+                        command.id += ` ${splstr[i].replace(/,/g, " ")}`;
                     }
                 }
                 else{
@@ -305,6 +319,61 @@ module.exports.getTimeOut = function (instr) {
     }
 
     return inms;
+}
+
+module.exports.getIdRequest = function(inId = ""){
+    if(inId == ``){
+        return `id=0`;
+    }
+
+    let splstr = inId.split(/\s+/);
+    let reqstr = ``;
+    let reqstrIN = ``;
+    let needIN = false;
+    let reqstrBETWEEN = ``;
+    
+    splstr.forEach(element =>{
+        if(/^\d+$/.test(element)){
+            if(reqstrIN == ``){
+                reqstrIN = `${element}`;
+            }
+            else{
+                reqstrIN += `,${element}`
+                needIN = true;
+            }
+        }
+        else if (/^\d+-\d+$/.test(element)){
+            let IDfrom = +element.substr(0,element.indexOf(`-`));
+            let IDto = +element.substr(element.indexOf(`-`)+1);
+            if(reqstrBETWEEN == ``){
+                reqstrBETWEEN = `id BETWEEN ` + (IDfrom <= IDto?`${IDfrom} AND ${IDto}`:`${IDto} AND ${IDfrom}`);
+            }
+            else{
+                reqstrBETWEEN += ` OR id BETWEEN ` + (IDfrom <= IDto?`${IDfrom} AND ${IDto}`:`${IDto} AND ${IDfrom}`);
+            }
+        }
+    });
+
+    if(reqstrIN != ``){
+        if(needIN){
+            reqstr = `id IN (${reqstrIN})`;
+        }
+        else{
+            reqstr = `id=${reqstrIN}`;
+        }
+
+        if(reqstrBETWEEN != ``){
+            reqstr += ` OR ${reqstrBETWEEN}`;
+        }
+    }
+    else if (reqstrBETWEEN != ``){
+        reqstr = `${reqstrBETWEEN}`;
+    }
+    else{
+        reqstr = `id=0`;
+    }
+    
+    return reqstr;
 }
 
 module.exports.getTimeOutStr = function (InTimeOut) {
