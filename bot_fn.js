@@ -4,23 +4,22 @@ module.exports.getCommand = instr => {
     if (!instr)
         return `${botstr.err_text_Prefix} ${botstr.err_text_NotSetInStr}`;
 
-    var command={err : false};
+    let command={err : false};
 
-    let clearstr = instr.trim().replace(/^<@\d{18}>,?\s*/, "").replace(/\s{2,}/g, " ");;
-    let splstr = clearstr.split(/\s+/);
+    let splstr = instr.trim().replace(/^<@\d{18}>,?\s*/, "").replace(/\s{2,}/g, " ").split(/\s+/);
     
     let isHelp = false;
-    let helpPrm = "";
+    let iHelp = 0;
     let iStart = 0;
     let iEnd = splstr.length;
 
-    if(checkCommand(splstr[0]).cmd === `help`){
-        helpPrm = checkCommand(splstr[0]).prm;
+    if(checkCommand(splstr[iStart]).cmd === `help`){
+        iHelp = iStart;
         isHelp = true;
         iStart++;
     }
     else if(checkCommand(splstr[iEnd-1]).cmd === `help`){
-        helpPrm = checkCommand(splstr[iEnd-1]).prm;
+        iHelp = iEnd-1;
         isHelp = true;
         iEnd--;
     }
@@ -29,41 +28,26 @@ module.exports.getCommand = instr => {
     for (let i = iStart; i < iEnd; i++){
         comm = checkCommand(splstr[i]);
         
-        if(!comm.err){
-            if(!(`cmd` in command)){
+        if(!(`cmd` in command)){
+            if(!comm.err){
                 command.cmd = comm.cmd;
-                if(comm.prm != ``){
-                    command.prm = comm.prm;
-                }
-            }
-            else if (/^add$/.test(command.cmd)){
-                if (!(`name` in command)){
-                    command.name = `${splstr[i]}`;
-                }
-                else{
-                    command.name += ` ${splstr[i]}`;
+                if(comm.scmd != ``){
+                    command.scmd = comm.scmd;
                 }
             }
             else{
                 command.err = true;
-                command.prm = /^([\d]+|undefined)$/.test(command.prm)?command.cmd:`${command.cmd}${command.prm}`;
-                command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, `${command.prm}`)}`;
+                command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_UnknownCommand, splstr[i])}`;
             }
         }
         else{
-            if(!(`cmd` in command)){
-                command.err = true;
-                command.cmd = splstr[i];
-                command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_UnknownCommand, splstr[i])}`;
-            }
-            else if((`cmd` in command) && !(`prm` in command) && (!checkCommand(`${command.cmd}${splstr[i]}`).err)){
-                command.prm = splstr[i];
+            if(!(`scmd` in command) && (!checkCommand(`${command.cmd}${splstr[i]}`).err)){
+                command.scmd = splstr[i];
             }
             else if (/^(getkey|stop)$/.test(command.cmd)){
                 if(/^\d+$/.test(splstr[i])){
                     if(!(`id` in command)){
                         command.id = splstr[i];
-                        //command.prm = `id${splstr[i]}`;
                     }
                     else{
                         command.err = true;
@@ -93,7 +77,6 @@ module.exports.getCommand = instr => {
                 if(/^\d+$/.test(splstr[i])){
                     if(!(`id` in command)){
                         command.id = splstr[i];
-                        //command.prm = `id${splstr[i]}`;
                     }
                     else{
                         command.err = true;
@@ -103,11 +86,9 @@ module.exports.getCommand = instr => {
                 else if (/^(\d+[hms]){1,3}$/.test(splstr[i])){
                     if(!(`time` in command)){
                         command.time = this.getTimeOut(splstr[i]);
-                        //command.prm = `id${splstr[i]}`;
                     }
                     else if((`time` in command)){
                         command.time += this.getTimeOut(splstr[i]);
-                        //command.prm = `id${splstr[i]}`;
                         if(command.time > 86400000)
                             command.time = 86400000;
                     }
@@ -130,8 +111,7 @@ module.exports.getCommand = instr => {
             }
             else{
                 command.err = true;
-                command.cmd = /^([\d]+|undefined)$/.test(command.prm)?command.cmd:`${command.cmd}${command.prm}`;
-                command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, `${command.cmd}`)}`;
+                command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, `${command.cmd}${('scmd' in command)?command.scmd:''}`)}`;
             }
         }
 
@@ -140,7 +120,24 @@ module.exports.getCommand = instr => {
         }
     }
 
-    if(!command.err && /^(getkey|del|set|stop)$/.test(command.cmd)){
+    if(isHelp){
+        if(`cmd` in command){
+            if(command.cmd != `help`){
+                command.scmd = (`scmd` in command)?`${command.cmd}${command.scmd}`:`${command.cmd}`;
+                command.cmd = `help`;
+            }
+            command.err = false;
+            delete command.prm;
+            delete command.id;
+            delete command.time;
+            delete command.name;
+            delete command.key;
+        }
+        else if (!command.err){
+            command = checkCommand(splstr[iHelp]);
+        }
+    }
+    else if(!command.err && /^(getkey|del|set|stop)$/.test(command.cmd)){
         if(!(`id` in command)){
             command.err = true;
             command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, [command.cmd,` (${botstr.err_text_WrongUseCommand_UnsetIndex})`])}`;
@@ -171,51 +168,30 @@ module.exports.getCommand = instr => {
         }
     }
     
-
-    if(isHelp){
-        if("cmd" in command){
-            if(!checkCommand(`${command.cmd}${command.prm}`).err){
-                command.prm = `${command.cmd}${command.prm}`;
-                command.cmd = `help`;
-                command.err = false;
-            }
-            else if(!checkCommand(command.cmd).err){
-                command.prm = command.cmd;
-                command.cmd = `help`;
-                command.err = false;
-            }
-        }
-        else{
-            command.cmd = `help`;
-            command.prm = helpPrm;
-            command.err = false;
-            
-        }
-    }
-
-    if((command.err) || (isHelp)){
+    if(command.err){
+        //delete command.cmd;
+        //delete command.scmd;
         delete command.id;
         delete command.time;
         delete command.name;
         delete command.key;
     }
     return command;
-    ///^(addme|whereme|s(how(my|key|lot|lotrun|next)?|[hmkln]|lr)|getkey|del|(del|set|add)(key|lot)|start|stop)$/
-   
 }
 
 function checkCommand(instr){
-    var instrL = instr.toLowerCase();
-    var command = "";
-    var param = "";
-    var error = false;
+    let instrL = instr.toLowerCase();
+    let command = "";
+    let subcmd = "";
+    let error = false;
 
     if (/^help$/.test(instrL)) {
         command = `help`;
+        subcmd = `help`;
     }
-    else if (/^\?$/.test(instrL)) {
+    else if (/^(helpshort|\?)$/.test(instrL)) {
         command = `help`;
-        param = `short`;
+        subcmd = `short`;
     }
     else if (/^about$/.test(instrL)) {
         command = `about`;
@@ -237,39 +213,39 @@ function checkCommand(instr){
     }
     else if (/^(showmy|showm|shm|sm)$/.test(instrL)){
         command = `show`;
-        param = `my`;
+        subcmd = `my`;
     }
     else if (/^(showkey|showk|shk|sk)$/.test(instrL)){
         command = `show`;
-        param = `key`;
+        subcmd = `key`;
     }
     else if (/^(showlot|showl|shl|sl)$/.test(instrL)){
         command = `show`;
-        param = `lot`;
+        subcmd = `lot`;
     }
     else if (/^(showlotrun|showlr|shlr|slr)$/.test(instrL)){
         command = `show`;
-        param = `lotrun`;
+        subcmd = `lotrun`;
     }
     else if (/^(shownext|shown|shn|sn)$/.test(instrL)){
         command = `show`;
-        param = `next`;
+        subcmd = `next`;
     }
     else if (/^(addkey|ak)$/.test(instrL)){
         command = `add`;
-        param = `key`;
+        subcmd = `key`;
     }
     else if (/^(addlot|al)$/.test(instrL)){
         command = `add`;
-        param = `lot`;
+        subcmd = `lot`;
     }
     else if (/^(setkey|setk|stk)$/.test(instrL)){
         command = `set`;
-        param = `key`
+        subcmd = `key`
     }
     else if (/^(setlot|setl|stl)$/.test(instrL)){
         command = `set`;
-        param = `lot`
+        subcmd = `lot`
     }
     else if (/^(del)$/.test(instrL)){
         command = `del`;
@@ -288,7 +264,7 @@ function checkCommand(instr){
     return {
         err : error,
         cmd : command,
-        prm : param
+        scmd : subcmd
     }
 }
 
@@ -475,8 +451,8 @@ module.exports.getHelp =  incmd => {
     if (typeof(incmd) == `string`){
         command = incmd || "";
     }
-    else if (`prm` in incmd) {
-        command = incmd.prm || "";
+    else if (`scmd` in incmd) {
+        command = incmd.scmd || "";
     }
     else {
         command = `help`;

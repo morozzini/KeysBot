@@ -88,7 +88,7 @@ client.on('message', message => {
                 message.reply(command.prm);
             }
             else if (command.cmd === "help") {
-                DEBUGLOG(`OUT HELP Embed "${command.prm}"`);
+                DEBUGLOG(`OUT HELP Embed "${command.scmd}"`);
                 message.author.send(new Discord.RichEmbed(botfn.getHelp(command)).setFooter(BOTVERSION));
             }
             else if (command.cmd === "ping") {
@@ -128,7 +128,7 @@ client.on('message', message => {
             }
             else if (command.cmd === "show") {
                 var request = "";
-                var inSubCommand = command.prm;
+                var inSubCommand = command.scmd;
 
                 var jarr = 0;
                 var istart = 0;
@@ -376,7 +376,7 @@ client.on('message', message => {
             message.reply(command.prm);
         }
         else if (command.cmd === "help") {
-            DEBUGLOG(`OUT HELP embed "${command.prm}"`);
+            DEBUGLOG(`OUT HELP embed "${command.scmd}"`);
             message.author.send(new Discord.RichEmbed(botfn.getHelp(command)).setFooter(BOTVERSION));
         }
         else if (command.cmd === "ping") {
@@ -396,7 +396,7 @@ client.on('message', message => {
                 }
                 else if (command.cmd === "show") {
                     var request = "";
-                    var inSubCommand = command.prm;
+                    var inSubCommand = command.scmd;
 
                     var jarr = 0;
                     var istart = 0;
@@ -503,7 +503,7 @@ client.on('message', message => {
                     var inGameKey = command.key;
                     var inGameName = command.name;
                     var request = "";
-                    let lott = command.prm == `lot`?`lot`:null;
+                    let lott = command.scmd == `lot`?`lot`:null;
                     
                     if ((inGameKey != "") && (inGameName != "")) {
                         db.get(`SELECT id,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and NameOfGame="${inGameName}" and GameKey="${inGameKey}"`).then(row => {
@@ -551,7 +551,7 @@ client.on('message', message => {
                 }
                 else if (command.cmd === "set") {
                     var inId = command.id;
-                    var lott = command.prm == `lot`?true:false;
+                    var lott = command.scmd == `lot`?true:false;
                     var reqId = botfn.getIdRequest(inId);
 
                     if (inId != "") {
