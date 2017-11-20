@@ -137,7 +137,7 @@ module.exports.getCommand = instr => {
             command = checkCommand(splstr[iHelp]);
         }
     }
-    else if(!command.err && /^(getkey|del|set|stop)$/.test(command.cmd)){
+    else if(!command.err && /^(getkey|del|set)$/.test(command.cmd)){
         if(!(`id` in command)){
             command.err = true;
             command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, [command.cmd,` (${botstr.err_text_WrongUseCommand_UnsetIndex})`])}`;
@@ -407,6 +407,10 @@ module.exports.getTimeOutStr = function (InTimeOut) {
     }
 
     return outstr.trim();
+}
+
+module.exports.getTextErr = function (TextStr = "", InParam = "") {
+    return `${botstr.err_text_Prefix} ${this.getText(TextStr,InParam)}`;
 }
 
 module.exports.getText = function (TextStr = "", InParam = "") {
