@@ -44,7 +44,7 @@ module.exports.getCommand = instr => {
             if(!(`scmd` in command) && (!checkCommand(`${command.cmd}${splstr[i]}`).err)){
                 command.scmd = splstr[i];
             }
-            else if (/^(getkey|stop)$/.test(command.cmd)){
+            else if (/^(getkey)$/.test(command.cmd)){
                 if(/^\d+$/.test(splstr[i])){
                     if(!(`id` in command)){
                         command.id = splstr[i];
@@ -59,7 +59,7 @@ module.exports.getCommand = instr => {
                     command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, command.cmd)}`;
                 }
             }
-            else if (/^(del|set)$/.test(command.cmd)){
+            else if (/^(del|set|stop)$/.test(command.cmd)){
                 if(/^(\d+(-\d+)?,?)+$/.test(splstr[i])){
                     if(!(`id` in command)){
                         command.id = splstr[i].replace(/,/g, " ");
@@ -74,13 +74,12 @@ module.exports.getCommand = instr => {
                 }
             }
             else if (/^(start)$/.test(command.cmd)){
-                if(/^\d+$/.test(splstr[i])){
+                if(/^(\d+(-\d+)?,?)+$/.test(splstr[i])){
                     if(!(`id` in command)){
-                        command.id = splstr[i];
+                        command.id = splstr[i].replace(/,/g, " ");
                     }
                     else{
-                        command.err = true;
-                        command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, [command.cmd,` (${botstr.err_text_WrongUseCommand_WrongIndex})`])}`;
+                        command.id += ` ${splstr[i].replace(/,/g, " ")}`;
                     }
                 }
                 else if (/^(\d+[hms]){1,3}$/.test(splstr[i])){
