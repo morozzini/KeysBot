@@ -42,7 +42,9 @@ module.exports.getCommand = instr => {
         }
         else{
             if(!(`scmd` in command) && (!checkCommand(`${command.cmd}${splstr[i]}`).err)){
-                command.scmd = splstr[i];
+                comm = checkCommand(`${command.cmd}${splstr[i]}`);
+                command.cmd = comm.cmd;
+                command.scmd = comm.scmd;
             }
             else if (/^(getkey)$/.test(command.cmd)){
                 if(/^\d+$/.test(splstr[i])){
@@ -210,27 +212,27 @@ function checkCommand(instr){
     else if (/^(show|sh)$/.test(instrL)){
         command = `show`;
     }
-    else if (/^(showmy|showm|shm|sm)$/.test(instrL)){
+    else if (/^(showmy|showm|shm|sm|my)$/.test(instrL)){
         command = `show`;
         subcmd = `my`;
     }
-    else if (/^(showkey|showk|shk|sk)$/.test(instrL)){
+    else if (/^(showkey|showk|shk|sk|key)$/.test(instrL)){
         command = `show`;
         subcmd = `key`;
     }
-    else if (/^(showlot|showl|shl|sl)$/.test(instrL)){
+    else if (/^(showlot|showl|shl|sl|lottery|lot)$/.test(instrL)){
         command = `show`;
         subcmd = `lot`;
     }
-    else if (/^(showlotrun|showlr|shlr|slr)$/.test(instrL)){
+    else if (/^(showlotrun|showlr|shlr|slr|lotteryrun|lotrun|run)$/.test(instrL)){
         command = `show`;
         subcmd = `lotrun`;
     }
-    else if (/^(shownext|shown|shn|sn)$/.test(instrL)){
+    else if (/^(shownext|shown|shn|sn|next)$/.test(instrL)){
         command = `show`;
         subcmd = `next`;
     }
-    else if (/^(addkey|ak)$/.test(instrL)){
+    else if (/^(addkey|ak|add)$/.test(instrL)){
         command = `add`;
         subcmd = `key`;
     }
