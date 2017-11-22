@@ -197,6 +197,9 @@ function checkCommand(instr){
     else if (/^about$/.test(instrL)) {
         command = `about`;
     }
+    else if (/^status$/.test(instrL)) {
+        command = `status`;
+    }
     else if (/^ping$/.test(instrL)) {
         command = `ping`;
     }

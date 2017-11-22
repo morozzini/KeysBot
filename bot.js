@@ -23,12 +23,13 @@ client.on('ready', () => {
     db.run("CREATE TABLE IF NOT EXISTS lottery (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, lotkey_id, lotmessage_id, discord_id, discord_channel, discord_nickname)");
     console.log(`${new Date().toLocaleString()} I am ready! ${BOTVERSION}`);
 
-    var arrchannels = client.channels.array();
-    for (var i = 0; i < arrchannels.length; i++) {
-        if(arrchannels[i].type != `dm`)
-            console.log(`> [${arrchannels[i].guild.name}][(${arrchannels[i].type})${arrchannels[i].name}]`);
+    for (let [key, value] of client.guilds){
+        console.log(`${value.name}`);
+        chnls = value.channels;
+        for (let [key,value] of chnls){
+            console.log(` |-(${value.type})${value.name}`);
+        }
     }
-
     db.all(`SELECT id,discord_id,discord_channel FROM gamekeys WHERE getdiscord_id="lotrun"`).then(lotrow => {
         if (lotrow) {
             if(lotrow.length > 0){
@@ -70,6 +71,67 @@ client.on('ready', () => {
             }
         }
     });
+    //for command status
+    // let chanelId=``;
+    // let channels = new Map();
+    // for (let [key, value] of client.guilds.get("367731991749066762").channels){
+    //     if(value.type == `text`){
+    //         console.log(`found channel id${key} #${value.name} `);
+    //         chanelId += (chanelId===``)?`"${key}"`:`,"${key}"`;
+
+    //         channels.set(key, {
+    //             name : value.name,
+    //             numkeys : 0,
+    //             numoutkeys : 0
+    //         });
+    //     }
+    // }
+    // console.log(chanelId);
+
+    // db.all(`SELECT discord_id,discord_nickname,discord_channel,getdiscord_id FROM gamekeys WHERE discord_channel IN (${chanelId}) AND (getdiscord_id != "lot" OR getdiscord_id IS NULL)`).then(rows => {
+    //     if (!rows) {
+    //         DEBUGLOG(`OUT STATUS Key not Found. (!rows)`);
+    //         message.reply(botfn.getTextErr(botstr.err_text_KeyLotteryRunNotFound));
+    //     }
+    //     else {
+    //         let autors = new Map();
+    //         let NumKeys = 0;
+    //         let NumOutKeys = 0;
+    //         let NumRunLot = 0;
+
+
+    //         for (let i = 0; i < rows.length; i++){
+    //             if(!autors.get(rows[i].discord_id)){
+    //                 autors.set(rows[i].discord_id,{
+    //                     nickname : rows[i].discord_nickname,
+    //                     numkeys : 0,
+    //                     numoutkeys : 0
+    //                 });
+    //             }
+                
+    //             if(rows[i].getdiscord_id == null){
+    //                 autors.get(rows[i].discord_id).numkeys++;
+    //                 NumKeys++;
+    //             }
+    //             else if (rows[i].getdiscord_id != null && rows[i].getdiscord_id != `lotrun`){
+    //                 autors.get(rows[i].discord_id).numkeys++;
+    //                 autors.get(rows[i].discord_id).numoutkeys++;
+    //                 NumOutKeys++;
+    //             }
+    //             else if(rows[i].getdiscord_id == `lotrun`){
+    //                 NumRunLot++;
+    //             }
+                
+    //         }
+
+    //         console.log(`Доступно ${NumKeys} ключей`);
+    //         console.log(`Всего раздали ${NumOutKeys} ключей`);
+    //         console.log(`Запущено ${NumRunLot} лотерей`);
+    //         for (let [key, value] of autors){
+    //             console.log(`${value.nickname} ${value.numoutkeys}/${value.numkeys}`);
+    //         }
+    //     }
+    // });
 });
 
 client.on('message', message => {
@@ -403,6 +465,119 @@ client.on('message', message => {
                     }
                 });
             }
+            else if (command.cmd === "status") {
+                let chanelId=``;
+                let channels = new Map();
+
+                for (let [key, value] of client.guilds.get(message.channel.guild.id).channels){
+                    if(value.type == `text`){
+                        chanelId += (chanelId===``)?`"${key}"`:`,"${key}"`;
+                        channels.set(key, {
+                            name : value.name,
+                            numkeys : 0,
+                            numoutkeys : 0,
+                            numrunlot : 0
+                        });
+                    }
+                }
+
+                db.all(`SELECT discord_id,discord_nickname,discord_channel,getdiscord_id FROM gamekeys WHERE discord_channel IN (${chanelId}) AND (getdiscord_id != "lot" OR getdiscord_id IS NULL)`).then(rows => {
+                    if (!rows || rows.length == 0) {
+                        DEBUGLOG(`OUT STATUS Key not Found. (!rows)`);
+                        message.reply(botfn.getTextErr(botstr.err_text_KeyNotFound));
+                    }
+                    else {
+                        let autors = new Map();
+                        let NumKeys = 0;
+                        let NumOutKeys = 0;
+                        let NumRunLot = 0;
+
+                        for (let i = 0; i < rows.length; i++){
+                            if(!autors.get(rows[i].discord_id)){
+                                autors.set(rows[i].discord_id,{
+                                    nickname : rows[i].discord_nickname,
+                                    numkeys : 0,
+                                    numoutkeys : 0
+                                });
+                            }
+                            
+                            if(rows[i].getdiscord_id == null){
+                                autors.get(rows[i].discord_id).numkeys++;
+                                channels.get(rows[i].discord_channel).numkeys++;
+                                NumKeys++;
+                            }
+                            else if (rows[i].getdiscord_id != null && rows[i].getdiscord_id != `lotrun`){
+                                autors.get(rows[i].discord_id).numkeys++;
+                                autors.get(rows[i].discord_id).numoutkeys++;
+                                channels.get(rows[i].discord_channel).numoutkeys++;
+                                NumOutKeys++;
+                            }
+                            else if(rows[i].getdiscord_id == `lotrun`){
+                                channels.get(rows[i].discord_channel).numrunlot++;
+                                NumRunLot++;
+                            }
+                            
+                        }
+
+                        let statnumkeys=``;
+                        let statnumoutkeys=``;
+                        let statnumrunlot=``;
+                        for (let [key, value] of channels){
+                            if(value.numkeys > 0)
+                                statnumkeys+=`${botfn.getText(botstr.status_text_FormatChannelKeys,[value.name,value.numkeys])}\n`;
+                            if(value.numoutkeys > 0)
+                                statnumoutkeys+=`${botfn.getText(botstr.status_text_FormatChannelKeys,[value.name,value.numoutkeys])}\n`;
+                            if(value.numrunlot > 0)
+                                statnumrunlot+=`${botfn.getText(botstr.status_text_FormatChannelKeys,[value.name,value.numrunlot])}\n`;
+                        }
+                        let Id_1,Val_1=0;
+                        let Id_2,Val_2=0;
+                        let Id_3,Val_3=0;
+                        let statautors=``;
+                        for (let [key, value] of autors){
+                            if(value.numkeys > Val_1){
+                                Id_3 = Id_2;
+                                Val_3 = Val_2;
+                                Id_2 = Id_1;
+                                Val_2 = Val_1;
+                                Id_1 = key;
+                                Val_1 = value.numkeys;
+                            }
+                            else if(value.numkeys > Val_2){
+                                Id_3 = Id_2;
+                                Val_3 = Val_2;
+                                Id_2 = key;
+                                Val_2 = value.numkeys;
+                            }
+                            else if(value.numkeys > Val_3){
+                                Id_3 = key;
+                                Val_3 = value.numkeys;
+                            }
+                        }
+                        if(autors.get(Id_1)){
+                            statautors+=`${botfn.getText(botstr.status_text_FormatAuthors,[autors.get(Id_1).nickname,autors.get(Id_1).numoutkeys,autors.get(Id_1).numkeys])}\n`;
+                        }
+                        if(autors.get(Id_2)){
+                            statautors+=`${botfn.getText(botstr.status_text_FormatAuthors,[autors.get(Id_2).nickname,autors.get(Id_2).numoutkeys,autors.get(Id_2).numkeys])}\n`;
+                        }
+                        if(autors.get(Id_3)){
+                            statautors+=`${botfn.getText(botstr.status_text_FormatAuthors,[autors.get(Id_3).nickname,autors.get(Id_3).numoutkeys,autors.get(Id_3).numkeys])}\n`;
+                        }
+
+                        let StatusRichEmbed = new Discord.RichEmbed();
+                        StatusRichEmbed.setColor(botstr.status_color);
+                        StatusRichEmbed.setTitle(botstr.status_text_Title);
+                        StatusRichEmbed.setDescription(botfn.getText(botstr.status_text_Description,`${message.channel.guild.name}`));
+                        StatusRichEmbed.setThumbnail(message.channel.guild.iconURL);
+                        StatusRichEmbed.addField(botfn.getText(botstr.status_text_FieldNumKeys,`${NumKeys}`),statnumkeys||botstr.status_text_NoChannels,true);
+                        StatusRichEmbed.addField(botfn.getText(botstr.status_text_FieldNumOutKeys,`${NumOutKeys}`),statnumoutkeys||botstr.status_text_NoChannels,true);
+                        StatusRichEmbed.addField(botfn.getText(botstr.status_text_FieldNumLotRun,`${NumRunLot}`),statnumrunlot||botstr.status_text_NoChannels);
+                        StatusRichEmbed.addField(botfn.getText(botstr.status_text_FieldNumAuthors,`${autors.size}`),statautors||botstr.status_text_NoAuthors);
+                        DEBUGLOG(`OUT STATUS send status.`);
+                        message.channel.send(StatusRichEmbed.setFooter(BOTVERSION));
+                    }
+                });
+            }
             else {
                 DEBUGLOG(`OUT ERROR Command not found! "${command.cmd}"`);
                 message.reply(botfn.getText(botstr.err_text_WrongUseCommandOrUnknownCommand, command.cmd));
@@ -679,18 +854,11 @@ client.on('message', message => {
                     }
                 }
                 else if (command.cmd === "whereme") {
-                    var channelfound = false;
-                    var arrchannels = client.channels.array();
-
-                    for (var i = 0; i < arrchannels.length; i++) {
-                        if (arrchannels[i].id == arow.discord_channel) {
-                            DEBUGLOG(`OUT WHEREME Found: "${arrchannels[i].guild.name}"->"${arrchannels[i].name}"`);
-                            message.reply(botfn.getText(botstr.whereme_text_FoundSuccess, [arrchannels[i].guild.name, arrchannels[i].name]));
-                            channelfound = true;
-                            break;
-                        }
+                    if(client.channels.get(arow.discord_channel)){
+                        DEBUGLOG(`OUT WHEREME Found: "${client.channels.get(arow.discord_channel).guild.name}"->"${client.channels.get(arow.discord_channel).name}"`);
+                        message.reply(botfn.getText(botstr.whereme_text_FoundSuccess, [client.channels.get(arow.discord_channel).guild.name, client.channels.get(arow.discord_channel).name]));
                     }
-                    if (!channelfound) {
+                    else{
                         DEBUGLOG(`OUT WHEREME Channel or server Not Found`);
                         message.reply(botstr.err_text_AuthorNotFound);
                     }

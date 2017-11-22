@@ -65,6 +65,19 @@ module.exports.set_text_UpdateKeySuccess_ManyKeys       = "Ключи обнов
 
 module.exports.whereme_text_FoundSuccess                = "Ты зарегистрирован на сервере \"${0}\" канал \"${1}\"";
 
+module.exports.status_color                             = 614259;
+module.exports.status_text_Title                        = "Статус";
+module.exports.status_text_Description                  = "Имя сервера **${0}**";
+module.exports.status_text_FieldNumKeys                 = "Доступно ключей: ${0}";
+module.exports.status_text_FieldNumOutKeys              = "Раздали ключей: ${0}";
+module.exports.status_text_FieldNumLotRun               = "Запущено лотерей: ${0}";
+module.exports.status_text_FieldNumAuthors              = "Топ 3 авторов из ${0}";
+module.exports.status_text_NoChannels                   = "Нет каналов";
+module.exports.status_text_NoAuthors                    = "Нет авторов";
+module.exports.status_text_FormatChannelKeys            = "#${0} - ${1}";
+module.exports.status_text_FormatAuthors                = "@${0} - ${1}/${2}";
+
+
 module.exports.help_text_TitleCommand                   = "Команда **__${}__**";
 module.exports.help_text_DescriptionUsing               = "Использование:";
 //Посмотреть как будет выглядить сообщение можно тут https://leovoel.github.io/embed-visualizer/
