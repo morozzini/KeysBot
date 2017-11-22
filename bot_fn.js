@@ -477,6 +477,9 @@ module.exports.getHelp =  incmd => {
         case "whereme":
             return this.getHelpEmbed("whereme", botstr.help_text_Whereme);
             break;
+        case "status":
+            return this.getHelpEmbed("status", botstr.help_text_Status);
+            break;
         case "getkey":
             return this.getHelpEmbed("getkey", botstr.help_text_Getkey);
             break;

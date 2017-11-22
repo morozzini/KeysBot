@@ -1,6 +1,6 @@
 
 const DEBUG = true;
-const BOTVERSION = "Keys Bot v.0.0.4b";
+const BOTVERSION = "Keys Bot v.0.0.5b";
 
 const config = require('./config.json');
 const botfn = require('./bot_fn');
@@ -71,67 +71,6 @@ client.on('ready', () => {
             }
         }
     });
-    //for command status
-    // let chanelId=``;
-    // let channels = new Map();
-    // for (let [key, value] of client.guilds.get("367731991749066762").channels){
-    //     if(value.type == `text`){
-    //         console.log(`found channel id${key} #${value.name} `);
-    //         chanelId += (chanelId===``)?`"${key}"`:`,"${key}"`;
-
-    //         channels.set(key, {
-    //             name : value.name,
-    //             numkeys : 0,
-    //             numoutkeys : 0
-    //         });
-    //     }
-    // }
-    // console.log(chanelId);
-
-    // db.all(`SELECT discord_id,discord_nickname,discord_channel,getdiscord_id FROM gamekeys WHERE discord_channel IN (${chanelId}) AND (getdiscord_id != "lot" OR getdiscord_id IS NULL)`).then(rows => {
-    //     if (!rows) {
-    //         DEBUGLOG(`OUT STATUS Key not Found. (!rows)`);
-    //         message.reply(botfn.getTextErr(botstr.err_text_KeyLotteryRunNotFound));
-    //     }
-    //     else {
-    //         let autors = new Map();
-    //         let NumKeys = 0;
-    //         let NumOutKeys = 0;
-    //         let NumRunLot = 0;
-
-
-    //         for (let i = 0; i < rows.length; i++){
-    //             if(!autors.get(rows[i].discord_id)){
-    //                 autors.set(rows[i].discord_id,{
-    //                     nickname : rows[i].discord_nickname,
-    //                     numkeys : 0,
-    //                     numoutkeys : 0
-    //                 });
-    //             }
-                
-    //             if(rows[i].getdiscord_id == null){
-    //                 autors.get(rows[i].discord_id).numkeys++;
-    //                 NumKeys++;
-    //             }
-    //             else if (rows[i].getdiscord_id != null && rows[i].getdiscord_id != `lotrun`){
-    //                 autors.get(rows[i].discord_id).numkeys++;
-    //                 autors.get(rows[i].discord_id).numoutkeys++;
-    //                 NumOutKeys++;
-    //             }
-    //             else if(rows[i].getdiscord_id == `lotrun`){
-    //                 NumRunLot++;
-    //             }
-                
-    //         }
-
-    //         console.log(`Доступно ${NumKeys} ключей`);
-    //         console.log(`Всего раздали ${NumOutKeys} ключей`);
-    //         console.log(`Запущено ${NumRunLot} лотерей`);
-    //         for (let [key, value] of autors){
-    //             console.log(`${value.nickname} ${value.numoutkeys}/${value.numkeys}`);
-    //         }
-    //     }
-    // });
 });
 
 client.on('message', message => {
