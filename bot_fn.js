@@ -1,8 +1,8 @@
-const botstr = require("./bot_string");
+module.exports.botstr = require("./bot_string.js");
 
 module.exports.getCommand = instr => {
     if (!instr)
-        return `${botstr.err_text_Prefix} ${botstr.err_text_NotSetInStr}`;
+        return `${this.botstr.err_text_Prefix} ${this.botstr.err_text_NotSetInStr}`;
 
     let command={err : false};
 
@@ -37,7 +37,7 @@ module.exports.getCommand = instr => {
             }
             else{
                 command.err = true;
-                command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_UnknownCommand, splstr[i])}`;
+                command.prm = `${this.botstr.err_text_Prefix} ${this.getText(this.botstr.err_text_UnknownCommand, splstr[i])}`;
             }
         }
         else{
@@ -53,12 +53,12 @@ module.exports.getCommand = instr => {
                     }
                     else{
                         command.err = true;
-                        command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, [command.cmd,` (${botstr.err_text_WrongUseCommand_WrongIndex})`])}`;
+                        command.prm = `${this.botstr.err_text_Prefix} ${this.getText(this.botstr.err_text_WrongUseCommand, [command.cmd,` (${this.botstr.err_text_WrongUseCommand_WrongIndex})`])}`;
                     }
                 }
                 else{
                     command.err = true;
-                    command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, command.cmd)}`;
+                    command.prm = `${this.botstr.err_text_Prefix} ${this.getText(this.botstr.err_text_WrongUseCommand, command.cmd)}`;
                 }
             }
             else if (/^(del|set|stop)$/.test(command.cmd)){
@@ -72,7 +72,7 @@ module.exports.getCommand = instr => {
                 }
                 else{
                     command.err = true;
-                    command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, command.cmd)}`;
+                    command.prm = `${this.botstr.err_text_Prefix} ${this.getText(this.botstr.err_text_WrongUseCommand, command.cmd)}`;
                 }
             }
             else if (/^(start)$/.test(command.cmd)){
@@ -96,7 +96,7 @@ module.exports.getCommand = instr => {
                 }
                 else{
                     command.err = true;
-                    command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, command.cmd)}`;
+                    command.prm = `${this.botstr.err_text_Prefix} ${this.getText(this.botstr.err_text_WrongUseCommand, command.cmd)}`;
                 }
             }
             else if (/^add$/.test(command.cmd)){
@@ -112,7 +112,7 @@ module.exports.getCommand = instr => {
             }
             else{
                 command.err = true;
-                command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, `${command.cmd}${('scmd' in command)?command.scmd:''}`)}`;
+                command.prm = `${this.botstr.err_text_Prefix} ${this.getText(this.botstr.err_text_WrongUseCommand, `${command.cmd}${('scmd' in command)?command.scmd:''}`)}`;
             }
         }
 
@@ -141,31 +141,31 @@ module.exports.getCommand = instr => {
     else if(!command.err && /^(getkey|del|set)$/.test(command.cmd)){
         if(!(`id` in command)){
             command.err = true;
-            command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, [command.cmd,` (${botstr.err_text_WrongUseCommand_UnsetIndex})`])}`;
+            command.prm = `${this.botstr.err_text_Prefix} ${this.getText(this.botstr.err_text_WrongUseCommand, [command.cmd,` (${this.botstr.err_text_WrongUseCommand_UnsetIndex})`])}`;
         }
     }
     else if(!command.err && /^start$/.test(command.cmd)){
         if(!(`id` in command)){
             command.err = true;
-            command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, [command.cmd,` (${botstr.err_text_WrongUseCommand_UnsetIndex})`])}`;
+            command.prm = `${this.botstr.err_text_Prefix} ${this.getText(this.botstr.err_text_WrongUseCommand, [command.cmd,` (${this.botstr.err_text_WrongUseCommand_UnsetIndex})`])}`;
         }
         else if (!(`time` in command)){
             command.err = true;
-            command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, [command.cmd,` (${botstr.err_text_WrongUseCommand_UnsetTime})`])}`;
+            command.prm = `${this.botstr.err_text_Prefix} ${this.getText(this.botstr.err_text_WrongUseCommand, [command.cmd,` (${this.botstr.err_text_WrongUseCommand_UnsetTime})`])}`;
         }
         else if(command.time == 0){
             command.err = true;
-            command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, [command.cmd,` (${botstr.err_text_WrongUseCommand_WrongTime})`])}`;
+            command.prm = `${this.botstr.err_text_Prefix} ${this.getText(this.botstr.err_text_WrongUseCommand, [command.cmd,` (${this.botstr.err_text_WrongUseCommand_WrongTime})`])}`;
         }
     }
     else if(!command.err && /^add$/.test(command.cmd)){
         if(!(`name` in command)){
             command.err = true;
-            command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, [command.cmd,`(${botstr.err_text_WrongUseCommand_UnsetName})`])}`;
+            command.prm = `${this.botstr.err_text_Prefix} ${this.getText(this.botstr.err_text_WrongUseCommand, [command.cmd,`(${this.botstr.err_text_WrongUseCommand_UnsetName})`])}`;
         }
         else if (!(`key` in command)){
             command.err = true;
-            command.prm = `${botstr.err_text_Prefix} ${this.getText(botstr.err_text_WrongUseCommand, [command.cmd,`(${botstr.err_text_WrongUseCommand_UnsetKey})`])}`;
+            command.prm = `${this.botstr.err_text_Prefix} ${this.getText(this.botstr.err_text_WrongUseCommand, [command.cmd,`(${this.botstr.err_text_WrongUseCommand_UnsetKey})`])}`;
         }
     }
     
@@ -215,23 +215,23 @@ function checkCommand(instr){
     else if (/^(show|sh)$/.test(instrL)){
         command = `show`;
     }
-    else if (/^(showmy|showm|shm|sm|my)$/.test(instrL)){
+    else if (/^(showmy|shmy|shm|sm|my)$/.test(instrL)){
         command = `show`;
         subcmd = `my`;
     }
-    else if (/^(showkey|showk|shk|sk|key)$/.test(instrL)){
+    else if (/^(showkey|shkey|shk|sk|key)$/.test(instrL)){
         command = `show`;
         subcmd = `key`;
     }
-    else if (/^(showlot|showl|shl|sl|lottery|lot)$/.test(instrL)){
+    else if (/^(showlot|shlot|shl|sl|lottery|lot)$/.test(instrL)){
         command = `show`;
         subcmd = `lot`;
     }
-    else if (/^(showlotrun|showlr|shlr|slr|lotteryrun|lotrun|run)$/.test(instrL)){
+    else if (/^(showlotrun|shlotrun|shlr|slr|lotteryrun|lotrun|run)$/.test(instrL)){
         command = `show`;
         subcmd = `lotrun`;
     }
-    else if (/^(shownext|shown|shn|sn|next)$/.test(instrL)){
+    else if (/^(shownext|shnext|shn|sn|next)$/.test(instrL)){
         command = `show`;
         subcmd = `next`;
     }
@@ -414,7 +414,7 @@ module.exports.getTimeOutStr = function (InTimeOut) {
 }
 
 module.exports.getTextErr = function (TextStr = "", InParam = "") {
-    return `${botstr.err_text_Prefix} ${this.getText(TextStr,InParam)}`;
+    return `${this.botstr.err_text_Prefix} ${this.getText(TextStr,InParam)}`;
 }
 
 module.exports.getText = function (TextStr = "", InParam = "") {
@@ -453,7 +453,7 @@ module.exports.getText = function (TextStr = "", InParam = "") {
 
 module.exports.getHelp =  incmd => {
     if (!incmd)
-        return this.getHelpEmbed("help", botstr.help_text_Help);
+        return this.getHelpEmbed("help", this.botstr.help_text_Help);
 
     let command = "";
     if (typeof(incmd) == `string`){
@@ -468,74 +468,74 @@ module.exports.getHelp =  incmd => {
 
     switch (command) {
         case "short":
-            //return { description: `${botstr.help_text_ShortHelp}` };
+            //return { description: `${this.botstr.help_text_ShortHelp}` };
             return this.getHelpShortEmbed();
             break;
         case "addme":
-            return this.getHelpEmbed("addme", botstr.help_text_Addme);
+            return this.getHelpEmbed("addme", this.botstr.help_text_Addme);
             break;
         case "whereme":
-            return this.getHelpEmbed("whereme", botstr.help_text_Whereme);
+            return this.getHelpEmbed("whereme", this.botstr.help_text_Whereme);
             break;
         case "status":
-            return this.getHelpEmbed("status", botstr.help_text_Status);
+            return this.getHelpEmbed("status", this.botstr.help_text_Status);
             break;
         case "getkey":
-            return this.getHelpEmbed("getkey", botstr.help_text_Getkey);
+            return this.getHelpEmbed("getkey", this.botstr.help_text_Getkey);
             break;
         case "show":
-            return this.getHelpEmbed("show", botstr.help_text_Show);
+            return this.getHelpEmbed("show", this.botstr.help_text_Show);
             break;
         case "showmy":
-            return this.getHelpEmbed("showmy", botstr.help_text_Showmy);
+            return this.getHelpEmbed("showmy", this.botstr.help_text_Showmy);
             break;
         case "showkey":
-            return this.getHelpEmbed("showkey", botstr.help_text_Showkey);
+            return this.getHelpEmbed("showkey", this.botstr.help_text_Showkey);
             break;
         case "showlot":
-            return this.getHelpEmbed("showlot", botstr.help_text_Showlot);
+            return this.getHelpEmbed("showlot", this.botstr.help_text_Showlot);
             break;
         case "showlotrun":
-            return this.getHelpEmbed("showlotrun", botstr.help_text_Showlotrun);
+            return this.getHelpEmbed("showlotrun", this.botstr.help_text_Showlotrun);
             break;
         case "shownext":
-            return this.getHelpEmbed("shownext", botstr.help_text_Shownext);
+            return this.getHelpEmbed("shownext", this.botstr.help_text_Shownext);
             break;
         case "addkey":
-            return this.getHelpEmbed("addkey", botstr.help_text_Addkey);
+            return this.getHelpEmbed("addkey", this.botstr.help_text_Addkey);
             break;
         case "addlot":
-            return this.getHelpEmbed("addlot", botstr.help_text_Addlot);
+            return this.getHelpEmbed("addlot", this.botstr.help_text_Addlot);
             break;
         case "setkey":
-            return this.getHelpEmbed("setkey", botstr.help_text_Setkey);
+            return this.getHelpEmbed("setkey", this.botstr.help_text_Setkey);
             break;
         case "setlot":
-            return this.getHelpEmbed("setlot", botstr.help_text_Setlot);
+            return this.getHelpEmbed("setlot", this.botstr.help_text_Setlot);
             break;
         case "del":
-            return this.getHelpEmbed("del", botstr.help_text_Del);
+            return this.getHelpEmbed("del", this.botstr.help_text_Del);
             break;
         case "start":
-            return this.getHelpEmbed("start", botstr.help_text_Start);
+            return this.getHelpEmbed("start", this.botstr.help_text_Start);
             break;
         case "stop":
-            return this.getHelpEmbed("stop", botstr.help_text_Stop);
+            return this.getHelpEmbed("stop", this.botstr.help_text_Stop);
             break;
         default:
-            return this.getHelpEmbed("help", botstr.help_text_Help);
+            return this.getHelpEmbed("help", this.botstr.help_text_Help);
     }
 }
 
 module.exports.getHelpEmbed = function (Command = "", TextStr = "") {
     return {
-        title: this.getText(botstr.help_text_TitleCommand, Command),
-        description: `${botstr.help_text_DescriptionUsing}\n${TextStr}`
+        title: this.getText(this.botstr.help_text_TitleCommand, Command),
+        description: `${this.botstr.help_text_DescriptionUsing}\n${TextStr}`
     };
 }
 
 module.exports.getHelpShortEmbed = () => {
-    let ArrShortStr = botstr.help_text_ShortHelp.split(`|`);
+    let ArrShortStr = this.botstr.help_text_ShortHelp.split(`|`);
     /*/
     let embed = {"fields" : []};
     for (let i = 0; i < ArrShortStr.length; i+=2){
@@ -567,8 +567,8 @@ module.exports.getHelpShortEmbed = () => {
 
 module.exports.getStartEmbed = function (InParam = "") {
     return {
-        title: botstr.start_text_LotteryStartedTitle,
-        description: `${this.getText(botstr.start_text_LotteryStartedText, InParam)}`
+        title: this.botstr.start_text_LotteryStartedTitle,
+        description: `${this.getText(this.botstr.start_text_LotteryStartedText, InParam)}`
     }
 }
 

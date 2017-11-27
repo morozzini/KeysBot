@@ -3,14 +3,15 @@ const DEBUG = true;
 const BOTVERSION = "Keys Bot v.0.0.5b";
 
 const config = require('./config.json');
+const botstr = require(`./${config.lang}`);
 const botfn = require('./bot_fn');
-const botstr = require('./bot_string');
+botfn.botstr = botstr;
 const db = require("sqlite");
 const Discord = require('discord.js');
 
 const client = new Discord.Client();
 var ArrLottery = [];
-var ArrShowNext = [];
+var ShowNextMap = new Map();
 
 function DEBUGLOG(logstr) {
     if (DEBUG)
@@ -75,14 +76,10 @@ client.on('ready', () => {
 
 client.on('message', message => {
     if (message.author === client.user) return;
-    if (DEBUG) {
-        if (message.channel.type === "text")
-            DEBUGLOG(`IN (${message.channel.type})[${message.guild.name}][${message.channel.name}]\$ ${message.author.username}: "${message.content}"`);
-        else
-            DEBUGLOG(`IN (${message.channel.type})\$ ${message.author.username}: "${message.content}"`);
-    }
+    
     if (message.channel.type === "text") {
         if (message.content.startsWith(`${client.user}`)) {
+            DEBUGLOG(`IN (${message.channel.type})[${message.guild.name}][${message.channel.name}]\$ ${message.author.username}: "${message.content}"`);
             var command = botfn.getCommand(message.content);
 
             if (command.err) {
@@ -107,7 +104,7 @@ client.on('message', message => {
                         db.run("INSERT INTO authors (discord_id, discord_channel, discord_nickname) VALUES (?,?,?)", [message.author.id, message.channel.id, message.author.username]);
                         DEBUGLOG(`OUT ADDME add to "authors" db [${message.author.id}][${message.author.username}]`);
                         message.author.send(botstr.addme_text_AddingSuccess);
-                        //TODO добавить вывод короткого описания комманд.
+                        //TODO добавить вывод короткого описания команд.
                     }
                     else {
                         if (row.discord_channel != message.channel.id) {
@@ -135,20 +132,9 @@ client.on('message', message => {
                 var jarr = 0;
                 var istart = 0;
 
-                if (inSubCommand === "next") {
-                    if (ArrShowNext.length > 0) {
-                        for (var j = 0; j < ArrShowNext.length; j++) {
-                            if (ArrShowNext[j].id == message.channel.id) {
-                                jarr = j;
-                                istart = ArrShowNext[j].num;
-                                request = ArrShowNext[j].req;
-                                break;
-                            }
-                        }
-                    }
-                    else {
-                        request = `SELECT id,discord_nickname,discord_id,NameOfGame FROM gamekeys WHERE discord_channel="${message.channel.id}" and getdiscord_id IS NULL`;
-                    }
+                if (inSubCommand === "next" && ShowNextMap.has(message.channel.id)) {
+                    istart = ShowNextMap.get(message.channel.id).num;
+                    request = ShowNextMap.get(message.channel.id).req;
                 }
                 else if (inSubCommand === "my") {
                     request = `SELECT id,discord_nickname,discord_id,NameOfGame FROM gamekeys WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and getdiscord_id IS NULL`;
@@ -161,11 +147,9 @@ client.on('message', message => {
                 }
 
                 if (istart == 0) {
-                    for (var j = 0; j < ArrShowNext.length; j++) {
-                        if (ArrShowNext[j].id == message.channel.id) {
-                            ArrShowNext.splice(j, 1);
-                            break;
-                        }
+                    if(ShowNextMap.has(message.channel.id)){
+                        ShowNextMap.get(message.channel.id).num = 0;
+                        ShowNextMap.get(message.channel.id).req = request;
                     }
                 }
 
@@ -182,23 +166,15 @@ client.on('message', message => {
                                 strshow += `${botfn.getText(botstr.show_text_FormatNameAuthor, [row[i].id, row[i].NameOfGame, row[i].discord_nickname])}\n`;
                             }
                             else {
-                                if (istart > 0) {
-                                    ArrShowNext[jarr].num = i;
+                                if(ShowNextMap.has(message.channel.id)){
+                                    ShowNextMap.get(message.channel.id).num = i;
+                                    ShowNextMap.get(message.channel.id).req = request;
                                 }
-                                else {
-                                    ArrShowNext.push({
-                                        "id": message.channel.id,
-                                        "num": i,
-                                        "req": request
+                                else{
+                                    ShowNextMap.set(message.channel.id,{
+                                        num : i,
+                                        req : request
                                     });
-                                    setTimeout(() => {
-                                        for (var j = 0; j < ArrShowNext.length; j++) {
-                                            if (ArrShowNext[j].id == message.channel.id) {
-                                                ArrShowNext.splice(j, 1);
-                                                break;
-                                            }
-                                        }
-                                    }, 30000);
                                 }
                                 strshow += `...`;
                                 break;
@@ -432,7 +408,7 @@ client.on('message', message => {
                         let NumRunLot = 0;
 
                         for (let i = 0; i < rows.length; i++){
-                            if(!autors.get(rows[i].discord_id)){
+                            if(!autors.has(rows[i].discord_id)){
                                 autors.set(rows[i].discord_id,{
                                     nickname : rows[i].discord_nickname,
                                     numkeys : 0,
@@ -524,6 +500,7 @@ client.on('message', message => {
         }
     }
     else if (message.channel.type === "dm") {
+        DEBUGLOG(`IN (${message.channel.type})\$ ${message.author.username}: "${message.content}"`);
         var command = botfn.getCommand(message.content);
 
         if (command.err) {
@@ -556,22 +533,11 @@ client.on('message', message => {
                     var jarr = 0;
                     var istart = 0;
 
-                    if (inSubCommand === "next") {
-                        if (ArrShowNext.length > 0) {
-                            for (var j = 0; j < ArrShowNext.length; j++) {
-                                if (ArrShowNext[j].id == message.author.id) {
-                                    jarr = j;
-                                    istart = ArrShowNext[j].num;
-                                    request = ArrShowNext[j].req;
-                                    break;
-                                }
-                            }
-                        }
-                        else {
-                            request = `SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and (getdiscord_id IS NULL or getdiscord_id="lot" or getdiscord_id="lotrun")`;
-                        }
+                    if (inSubCommand === "next" && ShowNextMap.has(message.channel.id)) {
+                        istart = ShowNextMap.get(message.channel.id).num;
+                        request = ShowNextMap.get(message.channel.id).req;
                     }
-                    else if (inSubCommand === "my"){
+                    else if (inSubCommand === "my") {
                         request = `SELECT id,discord_channel,NameOfGame,GameKey,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}" and discord_channel="${arow.discord_channel}" and (getdiscord_id IS NULL or getdiscord_id="lot" or getdiscord_id="lotrun")`;
                     }
                     else if (inSubCommand === "key") {
@@ -588,11 +554,9 @@ client.on('message', message => {
                     }
 
                     if (istart == 0) {
-                        for (var j = 0; j < ArrShowNext.length; j++) {
-                            if (ArrShowNext[j].id == message.author.id) {
-                                ArrShowNext.splice(j, 1);
-                                break;
-                            }
+                        if(ShowNextMap.has(message.channel.id)){
+                            ShowNextMap.get(message.channel.id).num = 0;
+                            ShowNextMap.get(message.channel.id).req = request;
                         }
                     }
 
@@ -619,23 +583,15 @@ client.on('message', message => {
                                     }
                                 }
                                 else {
-                                    if (istart > 0) {
-                                        ArrShowNext[jarr].num = i;
+                                    if(ShowNextMap.has(message.channel.id)){
+                                        ShowNextMap.get(message.channel.id).num = i;
+                                        ShowNextMap.get(message.channel.id).req = request;
                                     }
-                                    else {
-                                        ArrShowNext.push({
-                                            "id": message.author.id,
-                                            "num": i,
-                                            "req": request
+                                    else{
+                                        ShowNextMap.set(message.channel.id,{
+                                            num : i,
+                                            req : request
                                         });
-                                        setTimeout(() => {
-                                            for (var j = 0; j < ArrShowNext.length; j++) {
-                                                if (ArrShowNext[j].id == message.author.id) {
-                                                    ArrShowNext.splice(j, 1);
-                                                    break;
-                                                }
-                                            }
-                                        }, 30000);
                                     }
                                     strshow += `...`;
                                     break;

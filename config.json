@@ -1,4 +1,5 @@
 {
     "token" : "Your token here",
-    "database" : "basename.db"
+    "database" : "basename.db",
+    "lang" : "bot_string.js"
 }

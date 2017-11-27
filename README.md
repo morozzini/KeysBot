@@ -3,7 +3,9 @@ Discord bot.
 
 ## Config
 Set your config in config.json  
-**token** - The token of your bot - [get here](https://discordapp.com/developers/applications/me)
+**token** - The token of your bot - [get here](https://discordapp.com/developers/applications/me)  
+**database** - Name DB  
+**lang** - Name language file. May .js or .json(without comment)
 
 ## Need Install
 * node.js
@@ -15,7 +17,7 @@ Set your config in config.json
 node bot.js
 ```
 
-Using link:  
-[Discord API Documentation](https://discordapp.com/developers/docs/intro)  
-[Discord.js Documentation](https://discord.js.org/#/docs/main/stable/general/welcome)  
-[Discord.js Getting Started](https://anidiots.guide/)
+References:  
+* [Discord API Documentation](https://discordapp.com/developers/docs/intro)  
+* [Discord.js Documentation](https://discord.js.org/#/docs/main/stable/general/welcome)  
+* [Discord.js Getting Started](https://anidiots.guide/)
