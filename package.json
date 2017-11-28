@@ -1,0 +1,19 @@
+{
+  "name": "keysbot",
+  "version": "0.0.5",
+  "description": "Discord bot for game key",
+  "main": "bot.js",
+  "dependencies": {
+    "discord.js": "^11.2.1",
+    "sqlite": "^2.8.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/morozzini/KeysBot.git"
+  },
+  "author": "morozzini",
+  "bugs": {
+    "url": "https://github.com/morozzini/KeysBot/issues"
+  },
+  "homepage": "https://github.com/morozzini/KeysBot#readme"
+}
