@@ -211,17 +211,23 @@ client.on('message', message => {
                 }
             }
             else if (command.cmd === "start") {
-                var inId = command.id;
+                let inId = command.id;
                 let reqId = botfn.getIdRequest(command.id);
                 let minId;
                 let allId = ``;
-                var inTime = command.time;
-                var TimeStr = botfn.getTimeOutStr(inTime);
+                let inTime = command.time;
+                let TimeStr = botfn.getTimeOutStr(inTime);
+
+                let limit = 20;
 
                 db.all(`SELECT id,discord_nickname,discord_id,NameOfGame,GameKey FROM gamekeys WHERE (${reqId}) and discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and getdiscord_id="lot"`).then(row => {
                     if (!row || row.length == 0) {
                         DEBUGLOG(`OUT START key not Found for chanel. (!row) [${inId}]`);
                         message.channel.send(botstr.err_text_KeyNotFoundForChannel);
+                    }
+                    else if (row.length > limit){
+                        DEBUGLOG(`OUT START key Found for chanel. but over limit(${row.length}>${limit}) [${inId}]`);
+                        message.channel.send(botfn.getText(botstr.err_text_LotteryOverLimitKeys,[row.length, limit]));
                     }
                     else {
                         DEBUGLOG(`INSIDE START key Found. start lottery! [${inId}]`);
