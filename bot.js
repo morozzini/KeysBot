@@ -831,7 +831,7 @@ client.on('message', message => {
                             StatusRichEmbed.setThumbnail(message.author.avatarURL);
                             StatusRichEmbed.addField(botfn.getText(botstr.status_text_FieldNumKeys, `${NumKeys}`), statnumkeys || botstr.status_text_NoChannels, true);
                             StatusRichEmbed.addField(botfn.getText(botstr.status_text_FieldNumOutKeys, `${NumOutKeys}`), statnumoutkeys || botstr.status_text_NoChannels, true);
-                            StatusRichEmbed.addField(botfn.getText(botstr.status_text_FieldNumLot, `${NumLot}`), statnumoutkeys || botstr.status_text_NoChannels, true);
+                            StatusRichEmbed.addField(botfn.getText(botstr.status_text_FieldNumLot, `${NumLot}`), statnumlot || botstr.status_text_NoChannels, true);
                             StatusRichEmbed.addField(botfn.getText(botstr.status_text_FieldNumLotRun, `${NumRunLot}`), statnumrunlot || botstr.status_text_NoChannels, true);
 
                             DEBUGLOG(`OUT STATUS send status.`);
