@@ -22,7 +22,7 @@ client.on('ready', () => {
     db.run("CREATE TABLE IF NOT EXISTS gamekeys (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, discord_id, discord_nickname, discord_channel, NameOfGame, GameKey, getdiscord_id, getdiscord_nickname)");
     db.run("CREATE TABLE IF NOT EXISTS authors (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, discord_id, discord_channel, discord_nickname)");
     db.run("CREATE TABLE IF NOT EXISTS lottery (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, lotkey_id, lotmessage_id, discord_id, discord_channel, discord_nickname)");
-    //console.log(`${new Date().toLocaleString()} I am ready! ${BOTVERSION}`);
+    //console.log(`${new Date().toISOString().replace(/T/, ` `).replace(/\..+/, '')} I am ready! ${BOTVERSION}`);
     let nameguilds = ``;
     for (let [key, value] of client.guilds) {
         //console.log(`${value.name}`);
@@ -32,7 +32,7 @@ client.on('ready', () => {
         //     console.log(` |-(${value.type})${value.name}`);
         // }
     }
-    console.log(`${new Date().toLocaleString()} I am ready! ${BOTVERSION}. Guilds: ${nameguilds}`);
+    console.log(`${new Date().toISOString().replace(/T/, ` `).replace(/\..+/, '')} I am ready! ${BOTVERSION}. Guilds: ${nameguilds}`);
 
     db.all(`SELECT id,discord_id,discord_channel FROM gamekeys WHERE getdiscord_id="lotrun"`).then(lotrow => {
         if (lotrow) {
