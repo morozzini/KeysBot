@@ -587,7 +587,7 @@ module.exports.getAboutEmbed = BotAvatarUrl => {
             },
             {
                 "name": "Разработчик",
-                "value": "morozzini#7238"
+                "value": "morozzini#7238 [Telegram](https://t.me/morozzini)"
             },
             {
                 "name": "Тестеры",
