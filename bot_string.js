@@ -73,9 +73,9 @@ module.exports.status_text_FieldNumKeys                 = "Доступно кл
 module.exports.status_text_FieldNumOutKeys              = "Ключей роздано: ${0}";
 module.exports.status_text_FieldNumLot                  = "Доступно лотерей: ${0}";
 module.exports.status_text_FieldNumLotRun               = "Запущено лотерей: ${0}";
-module.exports.status_text_FieldNumAuthors              = "Топ 3 авторов из ${0}";
+module.exports.status_text_FieldNumAuthors              = "Топ 3 раздающих из ${0} (раздали/добавили)";
 module.exports.status_text_NoChannels                   = "Нет каналов";
-module.exports.status_text_NoAuthors                    = "Нет авторов";
+module.exports.status_text_NoAuthors                    = "Нет раздающих";
 module.exports.status_text_FormatChannelKeys            = "#${0} - ${1}";
 module.exports.status_text_FormatAuthors                = "@${0} - ${1}/${2}";
 

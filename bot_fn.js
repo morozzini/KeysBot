@@ -212,7 +212,7 @@ function checkCommand(instr){
     else if (/^(getkey|gk)$/.test(instrL)){
         command = `getkey`;
     }
-    else if (/^(show|sh)$/.test(instrL)){
+    else if (/^(show|sh|ls)$/.test(instrL)){
         command = `show`;
     }
     else if (/^(showmy|shmy|shm|sm|my)$/.test(instrL)){
@@ -251,7 +251,7 @@ function checkCommand(instr){
         command = `set`;
         subcmd = `lot`
     }
-    else if (/^(del)$/.test(instrL)){
+    else if (/^(delete|del|rm)$/.test(instrL)){
         command = `del`;
     }
     else if (/^(start|lottery)$/.test(instrL)){
