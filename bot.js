@@ -811,15 +811,12 @@ async function getPlayers(Reactions){
     let players_name = '';
 
     for (let [key,value] of Reactions) {
-        //console.log(`[${key}]async`);
         const usrs = await value.fetchUsers();
-        //console.log(`[${key}]usrs = ${usrs.size}`);
 
         for (let [ukey, value] of usrs) {
             if ((players.size == 0) || (players.indexOf(value.id) < 0)) {
                 players.push(value.id);
                 players_name += (players_name === ``) ? `"${value.username}"` : `,"${value.username}"`;
-                //console.log(`[${key}] ${value.username}`);
             }
         }
     }
@@ -834,7 +831,6 @@ client.setInterval(() => {
     }
     
     if(ArrLottery.length > 0){
-        //console.log(`INTERVAL COUNT LOTTERY ${ArrLottery.length}`);
         let nowtime = Date.now();
 
         ArrLottery.forEach(element => {
@@ -842,7 +838,7 @@ client.setInterval(() => {
                 //Значит лотерея закончена! Надо чтот делать
                 let lotmess_id = element.msgid;
 
-                DEBUGLOG(`INSIDE INTERVAL Message [${lotmess_id}]. Lottery ended! `);
+                DEBUGLOG(`INSIDE INTERVAL Message [${lotmess_id}]. Lottery ended!`);
                 
                 element.endtime = null;
                 element.msgid = null;
@@ -856,11 +852,8 @@ client.setInterval(() => {
                             DEBUGLOG(`INSIDE INTERVAL Message [${lotmess_id}]. found! lottery [${lotrow.lot_key_id}]. Reaction [${lotmessage.reactions.size}]`);
                             if(lotmessage.reactions.size > 0){
                                 getPlayers(lotmessage.reactions).then(LotPlayers => {
-                                    //console.log(`getplayers ${LotPlayers[0].length}`);
-                                    
                                     if(LotPlayers.length > 0){
                                         let winNum = Math.floor(Math.random() * LotPlayers[0].length);
-                                        //console.log(`WIN NUM ${winNum}`);
                                         
                                         client.fetchUser(LotPlayers[0][winNum]).then(user => {
                                             db.all(`SELECT id,discord_nickname,discord_id,NameOfGame,GameKey FROM gamekeys WHERE getdiscord_nickname="${lotmess_id}" and getdiscord_id="lotrun"`).then(row => {
@@ -915,7 +908,7 @@ client.setInterval(() => {
             }
         });
     }
-},30000)
+},15000)
 
 db.open(config.database);
 client.login(config.token);
