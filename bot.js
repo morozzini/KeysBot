@@ -1,6 +1,6 @@
 
 const DEBUG = true;
-const BOTVERSION = "Keys Bot v.0.0.5b";
+const BOTVERSION = "Keys Bot v.0.0.7b";
 
 const config = require('./config.json');
 const botstr = require(`./${config.lang}`);
@@ -21,7 +21,7 @@ function DEBUGLOG(logstr) {
 client.on('ready', () => {
     db.run("CREATE TABLE IF NOT EXISTS gamekeys (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, discord_id, discord_nickname, discord_channel, NameOfGame, GameKey, getdiscord_id, getdiscord_nickname)");
     db.run("CREATE TABLE IF NOT EXISTS authors (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, discord_id, discord_channel, discord_nickname)");
-    db.run("CREATE TABLE IF NOT EXISTS lottery (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, lotkey_id, lotmessage_id, discord_id, discord_channel, discord_nickname)");
+    db.run("CREATE TABLE IF NOT EXISTS lottery (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, discord_channel_id, lot_message_id, lot_endtime, lot_key_id, author_discord_id, author_discord_nickname, win_discord_id, win_discord_nickname)");
     //console.log(`${new Date().toISOString().replace(/T/, ` `).replace(/\..+/, '')} I am ready! ${BOTVERSION}`);
     let nameguilds = ``;
     for (let [key, value] of client.guilds) {
@@ -34,54 +34,67 @@ client.on('ready', () => {
     }
     console.log(`${new Date().toISOString().replace(/T/, ` `).replace(/\..+/, '')} I am ready! ${BOTVERSION}. Guilds: ${nameguilds}`);
 
-    db.all(`SELECT id,discord_id,discord_channel FROM gamekeys WHERE getdiscord_id="lotrun"`).then(lotrow => {
-        if (lotrow) {
-            if (lotrow.length > 0) {
-                DEBUGLOG(`INSIDE After start Found Run Lottery ${lotrow.length}`)
-                db.run(`UPDATE gamekeys SET getdiscord_id="lot",getdiscord_nickname=NULL WHERE getdiscord_id="lotrun"`);
-                let users = [];
-
-                for (let i = 0; i < lotrow.length; i++) {
-                    if (users.length == 0) {
-                        users.push({
-                            userid: lotrow[i].discord_id,
-                            lotid: `${lotrow[i].id}`
-                        });
-                    }
-                    else {
-                        let found = false;
-                        for (let j = 0; j < users.length; j++) {
-                            if (users[j].userid == lotrow[i].discord_id) {
-                                users[j].lotid += `,${lotrow[i].id}`;
-                                found = true;
-                                break;
+    db.all(`SELECT discord_channel_id,lot_message_id,lot_endtime,lot_key_id,author_discord_id,author_discord_nickname FROM lottery WHERE win_discord_id IS NULL`).then(lotteryrow => {
+        if(!lotteryrow || lotteryrow.length == 0){
+            db.all(`SELECT id,discord_id,discord_channel FROM gamekeys WHERE getdiscord_id="lotrun"`).then(lotrow => {
+                if (lotrow) {
+                    if (lotrow.length > 0) {
+                        DEBUGLOG(`INSIDE AFTERSTART Found Unckecked(not in lottery db) Run Lottery ${lotrow.length}`);
+                        db.run(`UPDATE gamekeys SET getdiscord_id="lot",getdiscord_nickname=NULL WHERE getdiscord_id="lotrun"`);
+                        let users = [];
+        
+                        for (let i = 0; i < lotrow.length; i++) {
+                            if (users.length == 0) {
+                                users.push({
+                                    userid: lotrow[i].discord_id,
+                                    lotid: `${lotrow[i].id}`
+                                });
+                            }
+                            else {
+                                let found = false;
+                                for (let j = 0; j < users.length; j++) {
+                                    if (users[j].userid == lotrow[i].discord_id) {
+                                        users[j].lotid += `,${lotrow[i].id}`;
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) {
+                                    users.push({
+                                        userid: lotrow[i].discord_id,
+                                        lotid: `${lotrow[i].id}`
+                                    });
+                                }
                             }
                         }
-                        if (!found) {
-                            users.push({
-                                userid: lotrow[i].discord_id,
-                                lotid: `${lotrow[i].id}`
+        
+                        users.forEach(element => {
+                            client.fetchUser(element.userid).then(user => {
+                                DEBUGLOG(`OUT AFTERSTART Found lottery "${user.username}" [${element.lotid}]`)
+                                user.send(botfn.getText(botstr.err_text_FoundLotteryRunAfterStart, element.lotid));
                             });
-                        }
+                        });
                     }
                 }
-
-                users.forEach(element => {
-                    client.fetchUser(element.userid).then(user => {
-                        DEBUGLOG(`OUT AFTERSTART Found lottery "${user.username}" [${element.lotid}]`)
-                        user.send(botfn.getText(botstr.err_text_FoundLotteryRunAfterStart, element.lotid));
-                    });
-                });
-            }
+            });
         }
-    });
+        else{
+            DEBUGLOG(`INSIDE AFTERSTART Found Run Lottery ${lotteryrow.length}. Start`);
+            lotteryrow.forEach(element => {
+                ArrLottery.push({
+                    endtime: element.lot_endtime,
+                    msgid: element.lot_message_id
+                });
+            })
+        }
+    })
 });
 
 client.on('message', message => {
     if (message.author === client.user) return;
 
     if (message.channel.type === "text") {
-        if (message.content.startsWith(`${client.user}`)) {
+        if (message.content.startsWith(`${client.user}`) || (new RegExp(`^${botstr.cmd_Prefix}\\S+`).test(message.content))) {
             DEBUGLOG(`IN (${message.channel.type})[${message.guild.name}][${message.channel.name}]\$ ${message.author.username}: "${message.content}"`);
             var command = botfn.getCommand(message.content);
 
@@ -216,7 +229,6 @@ client.on('message', message => {
             else if (command.cmd === "start") {
                 let inId = command.id;
                 let reqId = botfn.getIdRequest(command.id);
-                let minId;
                 let allId = ``;
                 let inTime = command.time;
                 let TimeStr = botfn.getTimeOutStr(inTime);
@@ -233,71 +245,26 @@ client.on('message', message => {
                         message.channel.send(botfn.getText(botstr.err_text_LotteryOverLimitKeys,[row.length, limit]));
                     }
                     else {
-                        DEBUGLOG(`INSIDE START key Found. start lottery! [${inId}]`);
+                        
+                        let EndTime = Date.now() + inTime;
                         let strshow = ``;
-                        minId = row[0].id;
                         for (let i = 0; i < row.length; i++) {
                             strshow += `${botfn.getText(botstr.show_text_FormatNameAuthor, [row[i].id, row[i].NameOfGame, row[i].discord_nickname])}\n`;
                             allId += (allId == ``) ? `${row[i].id}` : `,${row[i].id}`;
-                            if (minId > row[i].id)
-                                minId = row[i].id;
                         }
                         var LotteryEmbed = new Discord.RichEmbed(botfn.getStartEmbed([TimeStr, `${botfn.getText(botstr.show_text_KeyFound, strshow)}`])).setColor(botstr.start_color_LotteryStarted);
-
+                        
+                        
                         message.channel.send("@here", LotteryEmbed).then(messagelot => {
-                            db.run(`UPDATE gamekeys SET getdiscord_id="lotrun",getdiscord_nickname=${messagelot.id} WHERE (${reqId}) and discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and getdiscord_id="lot"`);
-                            var lottimer = setTimeout(() => {
-                                DEBUGLOG(`INSIDE START Ended lottery! [${inId}]`);
-
-                                for (var i = 0; i < ArrLottery.length; i++) {
-                                    if (ArrLottery[i].id == minId) {
-                                        ArrLottery.splice(i, 1);
-                                        break;
-                                    }
-                                }
-
-                                db.all(`SELECT id,discord_id,discord_nickname FROM lottery WHERE lotmessage_id="${messagelot.id}"`).then(lot_players_rows => {
-                                    if (!lot_players_rows || lot_players_rows.length === 0) {
-                                        db.run(`UPDATE gamekeys SET getdiscord_id="lot",getdiscord_nickname=NULL WHERE (${reqId}) and discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and getdiscord_id="lotrun"`);
-                                        DEBUGLOG(`OUT START Ended lottery! Not checked (not emoji) (!lot_players_rows || lot_players_rows.length === 0) [${allId}]`);
-                                        messagelot.edit(LotteryEmbed.setColor(botstr.start_color_LotteryStopped));
-                                        message.channel.send(botfn.getText(botstr.start_text_LotteryStoppedNoReaction, allId));
-                                    }
-                                    else {
-                                        var winNum = Math.floor(Math.random() * lot_players_rows.length);
-
-                                        client.fetchUser(lot_players_rows[winNum].discord_id).then(user => {
-                                            strshow = ``;
-                                            namegame = ``;
-                                            for (let i = 0; i < row.length; i++) {
-                                                strshow += `${botfn.getText(botstr.show_text_FormatNameKey, [row[i].id, row[i].NameOfGame, row[i].GameKey])}\n`;
-                                                namegame += `${(i == 0)?"":"`, `"}${row[i].NameOfGame}`;
-                                            }
-                                            DEBUGLOG(`OUT START Ended lot! Key sended to (${winNum}/${lot_players_rows.length})[${user.id}][${user.username}] [\`${namegame}\`]`);
-
-                                            db.run(`UPDATE gamekeys SET getdiscord_id="${user.id}",getdiscord_nickname="${user.username}" WHERE (${reqId}) and discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and getdiscord_id="lotrun"`);
-                                            messagelot.edit(LotteryEmbed.setColor(botstr.start_color_LotteryStopped));
-                                            message.channel.send(botfn.getText(`${botstr.start_text_LotteryStoppedSuccess} ${botstr.getkey_text_KeyFoundSendChannel}`, [namegame, `<@${user.id}>`]));
-                                            user.send(botfn.getText(botstr.getkey_text_KeyFoundSendUser, [botfn.getText(botstr.show_text_KeyFound, strshow), `<@${row[0].discord_id}>`]));
-                                        });
-                                    }
-
-                                    if (ArrLottery.length === 0) {
-                                        db.run(`DELETE FROM lottery`);
-                                    }
-                                    else {
-                                        db.run(`DELETE FROM lottery WHERE lotmessage_id=${messagelot.id}`);
-                                    }
-                                });
-                            }, inTime);
+                            DEBUGLOG(`OUT START Message [${messagelot.id}]. key Found. start lottery [${inId}]! EndTime [${new Date(EndTime).toISOString().replace(/T/, ' ').replace(/\..+/, '')}]`);
+                            db.run(`UPDATE gamekeys SET getdiscord_id="lotrun",getdiscord_nickname="${messagelot.id}" WHERE (${reqId}) and discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and getdiscord_id="lot"`);
+                            db.run("INSERT INTO lottery (discord_channel_id, lot_message_id, lot_endtime, lot_key_id, author_discord_id, author_discord_nickname) VALUES (?,?,?,?,?,?)", [message.channel.id, messagelot.id, EndTime, allId, message.author.id, message.author.username]);
 
                             ArrLottery.push({
-                                author: message.author.id,
-                                id: `${minId}`,
-                                timer: lottimer,
-                                msg: messagelot,
-                                emb: LotteryEmbed
+                                endtime: EndTime,
+                                msgid: messagelot.id
                             });
+                            
                         });
                     }
                 });
@@ -311,7 +278,7 @@ client.on('message', message => {
                     inId = command.id;
                     reqId = botfn.getIdRequest(command.id);
                     request = `
-                        SELECT id,discord_nickname,discord_id,NameOfGame
+                        SELECT id,discord_nickname,discord_id,NameOfGame,getdiscord_nickname
                         FROM gamekeys WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and getdiscord_id="lotrun" and
                             getdiscord_nickname IN (SELECT getdiscord_nickname 
                                                     FROM gamekeys
@@ -319,74 +286,60 @@ client.on('message', message => {
                 }
                 else {
                     inId = `all`;
-                    request = `SELECT id,discord_nickname,discord_id,NameOfGame FROM gamekeys WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and getdiscord_id="lotrun"`;
+                    request = `SELECT id,discord_nickname,discord_id,NameOfGame,getdiscord_nickname FROM gamekeys WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and getdiscord_id="lotrun"`;
                 }
 
                 db.all(request).then(row => {
-                    if (!row) {
+                    if (!row || row.length == 0) {
                         DEBUGLOG(`OUT STOP Key not Found. (!row)[${inId}]`);
                         message.reply(botfn.getTextErr(botstr.err_text_KeyLotteryRunNotFound));
                     }
                     else {
-                        if (row.length > 0) {
-                            if (row.length == 1 && inId === `all`) {
-                                inId = `${row[0].id}`;
-                            }
-                            let LotMsgId = ``;
-                            if (ArrLottery.length > 0) {
-                                for (let j = 0; j < row.length; j++) {
-                                    for (let i = ArrLottery.length - 1; i >= 0; i--) {
-                                        if ((ArrLottery[i].id == row[j].id) || (inId === `all` && ArrLottery[i].author === message.author.id)) {
-
-                                            clearTimeout(ArrLottery[i].timer);
-                                            ArrLottery[i].msg.edit(ArrLottery[i].emb.setColor(botstr.start_color_LotteryStopped));
-                                            if (LotMsgId === ``) {
-                                                LotMsgId = `${ArrLottery[i].msg.id}`;
-                                            }
-                                            else {
-                                                LotMsgId += `,${ArrLottery[i].msg.id}`;
-                                            }
-
-                                            ArrLottery.splice(i, 1);
-                                            //break;
-                                        }
+                        if (row.length == 1 && inId === `all`) {
+                            inId = `${row[0].id}`;
+                        }
+                        let LotMsgId = ``;
+                        if (ArrLottery.length > 0) {
+                            for (let i = ArrLottery.length - 1; i >= 0; i--){
+                                for (let j = 0; j < row.length; j++){
+                                    if(ArrLottery[i].msgid == row[j].getdiscord_nickname){
+                                        LotMsgId += (LotMsgId == '')?`"${ArrLottery[i].msgid}"`:`,"${ArrLottery[i].msgid}"`;
+                                        client.channels.get(message.channel.id).fetchMessage(ArrLottery[i].msgid).then(lotmessage => {
+                                            lotmessage.edit(new Discord.RichEmbed(lotmessage.embeds[0]).setColor(botstr.start_color_LotteryStopped));
+                                        })
+                                        ArrLottery[i].endtime = null;
+                                        ArrLottery[i].msgid = null;
+                                        break;
                                     }
                                 }
                             }
+                        }
 
-                            if (ArrLottery.length === 0) {
-                                db.run(`DELETE FROM lottery`);
-                            }
-                            else if (LotMsgId != ``) {
-                                db.run(`DELETE FROM lottery WHERE lotmessage_id IN (${LotMsgId})`);
-                            }
+                        if (LotMsgId != ``) {
+                            db.run(`DELETE FROM lottery WHERE lot_message_id IN (${LotMsgId}) AND win_discord_id IS NULL`);
+                        }
 
-                            DEBUGLOG(`OUT STOP Key Found. Stopped [${inId}]`);
-                            if (inId === `all`) {
-                                db.run(`UPDATE gamekeys SET getdiscord_id="lot",getdiscord_nickname=NULL WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and getdiscord_id="lotrun"`);
-                                //strshow = `${botfn.getText(botstr.show_text_FormatNameAuthor, [row.id, row.NameOfGame, row.discord_nickname])}`;
-                                message.reply(botfn.getText(botstr.stop_text_ManyLotteryStopSuccess));
-                            }
-                            else if (row.length > 1) {
-                                db.run(`UPDATE gamekeys
-                                        SET getdiscord_id="lot",getdiscord_nickname=NULL
-                                        WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and getdiscord_id="lotrun" and
-                                                getdiscord_nickname IN (
-                                                    SELECT getdiscord_nickname 
-                                                    FROM gamekeys
-                                                    WHERE (${reqId}) and discord_id="${message.author.id}" and getdiscord_id="lotrun")`);
-                                //strshow = `${botfn.getText(botstr.show_text_FormatNameAuthor, [row.id, row.NameOfGame, row.discord_nickname])}`;
-                                message.reply(botfn.getText(botstr.stop_text_ManyLotteryStopSuccess));
-                            }
-                            else {
-                                db.run(`UPDATE gamekeys SET getdiscord_id="lot",getdiscord_nickname=NULL WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lotrun"`);
-                                //strshow = `${botfn.getText(botstr.show_text_FormatNameAuthor, [row.id, row.NameOfGame, row.discord_nickname])}`;
-                                message.reply(botfn.getText(botstr.stop_text_LotteryStopSuccess, inId));
-                            }
+                        DEBUGLOG(`OUT STOP Key Found. Stopped [${inId}]`);
+                        if (inId === `all`) {
+                            db.run(`UPDATE gamekeys SET getdiscord_id="lot",getdiscord_nickname=NULL WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and getdiscord_id="lotrun"`);
+                            //strshow = `${botfn.getText(botstr.show_text_FormatNameAuthor, [row.id, row.NameOfGame, row.discord_nickname])}`;
+                            message.reply(botfn.getText(botstr.stop_text_ManyLotteryStopSuccess));
+                        }
+                        else if (row.length > 1) {
+                            db.run(`UPDATE gamekeys
+                                    SET getdiscord_id="lot",getdiscord_nickname=NULL
+                                    WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and getdiscord_id="lotrun" and
+                                            getdiscord_nickname IN (
+                                                SELECT getdiscord_nickname 
+                                                FROM gamekeys
+                                                WHERE (${reqId}) and discord_id="${message.author.id}" and getdiscord_id="lotrun")`);
+                            //strshow = `${botfn.getText(botstr.show_text_FormatNameAuthor, [row.id, row.NameOfGame, row.discord_nickname])}`;
+                            message.reply(botfn.getText(botstr.stop_text_ManyLotteryStopSuccess));
                         }
                         else {
-                            DEBUGLOG(`OUT STOP Key not Found. (!row)[${inId}]`);
-                            message.reply(botfn.getTextErr(botstr.err_text_KeyLotteryRunNotFound));
+                            db.run(`UPDATE gamekeys SET getdiscord_id="lot",getdiscord_nickname=NULL WHERE discord_channel="${message.channel.id}" and discord_id="${message.author.id}" and id="${inId}" and getdiscord_id="lotrun"`);
+                            //strshow = `${botfn.getText(botstr.show_text_FormatNameAuthor, [row.id, row.NameOfGame, row.discord_nickname])}`;
+                            message.reply(botfn.getText(botstr.stop_text_LotteryStopSuccess, inId));
                         }
                     }
                 });
@@ -853,31 +806,116 @@ client.on('message', message => {
     }
 });
 
-client.on('messageReactionAdd', (messageReaction, user) => {
-    if (user === client.user) return;
-    if (ArrLottery.length > 0) {
-        for (var i = 0; i < ArrLottery.length; i++) {
-            if (ArrLottery[i].msg.id === messageReaction.message.id) {
-                db.get(`SELECT id,lotmessage_id,discord_id,discord_channel,discord_nickname FROM lottery WHERE lotmessage_id="${messageReaction.message.id}" and discord_id="${user.id}"`).then(row => {
-                    if (!row) {
-                        DEBUGLOG(`INSIDE Added reaction. [${ArrLottery[i].id}] ${user.username}`);
-                        db.run("INSERT INTO lottery (lotkey_id,lotmessage_id,discord_id,discord_channel,discord_nickname) VALUES (?,?,?,?,?)", [ArrLottery[i].id, messageReaction.message.id, user.id, messageReaction.message.channel.id, user.username]);
-                    }
-                });
-                break;
+async function getPlayers(Reactions){
+    let players = [];
+    let players_name = '';
+
+    for (let [key,value] of Reactions) {
+        //console.log(`[${key}]async`);
+        const usrs = await value.fetchUsers();
+        //console.log(`[${key}]usrs = ${usrs.size}`);
+
+        for (let [ukey, value] of usrs) {
+            if ((players.size == 0) || (players.indexOf(value.id) < 0)) {
+                players.push(value.id);
+                players_name += (players_name === ``) ? `"${value.username}"` : `,"${value.username}"`;
+                //console.log(`[${key}] ${value.username}`);
             }
         }
     }
-});
+    return [players,players_name];
+}
 
-client.on('messageReactionRemove', (messageReaction, user) => {
-    if (user === client.user) return;
-    if (ArrLottery.length > 0) {
-        DEBUGLOG(`INSIDE Deleted reaction. ${user.username}`);
-        db.run(`DELETE FROM lottery WHERE lotmessage_id="${messageReaction.message.id}" and discord_id="${user.id}"`);
+client.setInterval(() => {
+    for(let i = ArrLottery.length-1; i >= 0; i--){
+        if(!ArrLottery[i].endtime && !ArrLottery.msgid){
+            ArrLottery.splice(i, 1);
+        }
     }
-});
+    
+    if(ArrLottery.length > 0){
+        //console.log(`INTERVAL COUNT LOTTERY ${ArrLottery.length}`);
+        let nowtime = Date.now();
 
+        ArrLottery.forEach(element => {
+            if((element.endtime!=null) && (element.endtime < nowtime)){
+                //Значит лотерея закончена! Надо чтот делать
+                let lotmess_id = element.msgid;
+
+                DEBUGLOG(`INSIDE INTERVAL Message [${lotmess_id}]. Lottery ended! `);
+                
+                element.endtime = null;
+                element.msgid = null;
+
+                db.get(`SELECT discord_channel_id, lot_message_id, lot_endtime, lot_key_id FROM lottery WHERE lot_message_id="${lotmess_id}" AND win_discord_id IS NULL`).then(lotrow => {
+                    if(!lotrow){
+                        DEBUGLOG(`INSIDE INTERVAL ERROR Message [${lotmess_id}]. [${botstr.err_text_LotteryStopped}]`);
+                    }
+                    else{
+                        client.channels.get(lotrow.discord_channel_id).fetchMessage(lotrow.lot_message_id).then(lotmessage => {
+                            DEBUGLOG(`INSIDE INTERVAL Message [${lotmess_id}]. found! lottery [${lotrow.lot_key_id}]. Reaction [${lotmessage.reactions.size}]`);
+                            if(lotmessage.reactions.size > 0){
+                                getPlayers(lotmessage.reactions).then(LotPlayers => {
+                                    //console.log(`getplayers ${LotPlayers[0].length}`);
+                                    
+                                    if(LotPlayers.length > 0){
+                                        let winNum = Math.floor(Math.random() * LotPlayers[0].length);
+                                        //console.log(`WIN NUM ${winNum}`);
+                                        
+                                        client.fetchUser(LotPlayers[0][winNum]).then(user => {
+                                            db.all(`SELECT id,discord_nickname,discord_id,NameOfGame,GameKey FROM gamekeys WHERE getdiscord_nickname="${lotmess_id}" and getdiscord_id="lotrun"`).then(row => {
+                                                if (!row || row.length == 0) {
+                                                    DEBUGLOG(`OUT INTERVAL Message [${lotmess_id}]. key not Found for chanel. (!row) [${lotrow.lot_key_id}]`);
+                                                    lotmessage.channel.send(`${botstr.err_text_Prefix} ${botfn.getText(botstr.err_text_LotteryKeyNotFound, lotrow.lot_key_id)}`);
+                                                }
+                                                else{
+                                                    strshow = ``;
+                                                    namegame = ``;
+                                                    for (let i = 0; i < row.length; i++) {
+                                                        strshow += `${botfn.getText(botstr.show_text_FormatNameKey, [row[i].id, row[i].NameOfGame, row[i].GameKey])}\n`;
+                                                        namegame += `${(i == 0)?"":"`, `"}${row[i].NameOfGame}`;
+                                                    }
+                                                    DEBUGLOG(`OUT INTERVAL Message [${lotmess_id}]. Ended lot! players:${LotPlayers[1]}. Key sended to (${winNum}/${LotPlayers[0].length})[${user.id}][${user.username}] [\`${namegame}\`]`);
+    
+                                                    db.run(`UPDATE gamekeys SET getdiscord_id="${user.id}",getdiscord_nickname="${user.username}" WHERE getdiscord_nickname="${lotmess_id}" and getdiscord_id="lotrun"`);
+                                                    db.run(`UPDATE lottery SET win_discord_id="${user.id}",win_discord_nickname="${user.username}" WHERE lot_message_id="${lotmess_id}" AND win_discord_id IS NULL`);
+    
+                                                    lotmessage.edit(new Discord.RichEmbed(lotmessage.embeds[0]).setColor(botstr.start_color_LotteryStopped));
+                                                    lotmessage.channel.send(botfn.getText(`${botstr.start_text_LotteryStoppedSuccess} ${botstr.getkey_text_KeyFoundSendChannel}`, [namegame, `<@${user.id}>`]));
+                                                    user.send(botfn.getText(botstr.getkey_text_KeyFoundSendUser, [botfn.getText(botstr.show_text_KeyFound, strshow), `<@${row[0].discord_id}>`]));
+                                                }
+                                            })
+                                        })
+                                        .catch(errmess =>{
+                                            DEBUGLOG(`INSIDE INTERVAL ERROR Message [${lotmess_id}]. {${errmess}}`);
+                                        });
+                                    }
+                                    else{
+                                         DEBUGLOG(`INSIDE INTERVAL ERROR Message [${lotmess_id}]. Not Found Lot Players. [${lotrow.lot_key_id}]`);
+                                    }
+                                })
+                            }
+                            else{
+                                DEBUGLOG(`OUT INTERVAL Message [${lotmess_id}]. Ended lottery! Not checked (not emoji). Lottery [${lotrow.lot_key_id}]`);
+
+                                db.run(`UPDATE gamekeys SET getdiscord_id="lot",getdiscord_nickname=NULL WHERE getdiscord_nickname="${lotmess_id}" and getdiscord_id="lotrun"`);
+                                db.run(`DELETE FROM lottery WHERE lot_message_id="${lotmess_id}" AND win_discord_id IS NULL`);
+                                lotmessage.edit(new Discord.RichEmbed(lotmessage.embeds[0]).setColor(botstr.start_color_LotteryStopped));
+                                lotmessage.channel.send(botfn.getText(botstr.start_text_LotteryStoppedNoReaction, `<@${lotrow.author_discord_id}>`));
+                            }
+
+                        })
+                        .catch(() => {
+                            DEBUGLOG(`INSIDE INTERVAL ERROR Message [${lotmess_id}]. not found or other error`);
+                            db.run(`UPDATE gamekeys SET getdiscord_id="lot",getdiscord_nickname=NULL WHERE getdiscord_nickname="${lotmess_id}" and getdiscord_id="lotrun"`);
+                            db.run(`DELETE FROM lottery WHERE lot_message_id="${lotmess_id}" AND win_discord_id IS NULL`);
+                        });
+                    }
+                });
+            }
+        });
+    }
+},30000)
 
 db.open(config.database);
 client.login(config.token);

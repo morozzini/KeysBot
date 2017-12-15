@@ -1,3 +1,4 @@
+module.exports.cmd_Prefix                               = "k!";
 
 module.exports.err_text_Prefix                          = "Ошибка!";
 module.exports.err_text_NotSetInStr                     = "Не задана входная строка.";
@@ -47,7 +48,7 @@ module.exports.start_color_LotteryStarted               = [41,176,38]
 module.exports.start_color_LotteryStopped               = 12264741
 
 //module.exports.start_text_LotteryStarted                = "@here\n```Markdown\n# Запущена лотерея.\nЧерез ${0} ключ автоматически отошлется одному из тех кто поставит любой emoji под этим сообщением.\n${1}```";
-module.exports.start_text_LotteryStoppedNoReaction      = "Лотерея `${}` остановлена. Никто не отметился.";
+module.exports.start_text_LotteryStoppedNoReaction      = "${}, лотерея остановлена. Никто не отметился.";
 module.exports.start_text_LotteryStoppedSuccess         = "Лотерея окончена!";
 
 module.exports.stop_text_LotteryStopSuccess             = "Лотерея `${}` остановлена.";

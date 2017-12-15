@@ -13,12 +13,12 @@ module.exports.getCommand = instr => {
     let iStart = 0;
     let iEnd = splstr.length;
 
-    if(checkCommand(splstr[iStart]).cmd === `help`){
+    if(this.checkCommand(splstr[iStart]).cmd === `help`){
         iHelp = iStart;
         isHelp = true;
         iStart++;
     }
-    else if(checkCommand(splstr[iEnd-1]).cmd === `help`){
+    else if(this.checkCommand(splstr[iEnd-1]).cmd === `help`){
         iHelp = iEnd-1;
         isHelp = true;
         iEnd--;
@@ -26,7 +26,7 @@ module.exports.getCommand = instr => {
 
     
     for (let i = iStart; i < iEnd; i++){
-        comm = checkCommand(splstr[i]);
+        comm = this.checkCommand(splstr[i]);
         
         if(!(`cmd` in command)){
             if(!comm.err){
@@ -41,8 +41,8 @@ module.exports.getCommand = instr => {
             }
         }
         else{
-            if(!(`scmd` in command) && (!checkCommand(`${command.cmd}${splstr[i]}`).err)){
-                comm = checkCommand(`${command.cmd}${splstr[i]}`);
+            if(!(`scmd` in command) && (!this.checkCommand(`${command.cmd}${splstr[i]}`).err)){
+                comm = this.checkCommand(`${command.cmd}${splstr[i]}`);
                 command.cmd = comm.cmd;
                 command.scmd = comm.scmd;
             }
@@ -135,7 +135,7 @@ module.exports.getCommand = instr => {
             delete command.key;
         }
         else if (!command.err){
-            command = checkCommand(splstr[iHelp]);
+            command = this.checkCommand(splstr[iHelp]);
         }
     }
     else if(!command.err && /^(getkey|del|set)$/.test(command.cmd)){
@@ -180,8 +180,8 @@ module.exports.getCommand = instr => {
     return command;
 }
 
-function checkCommand(instr){
-    let instrL = instr.toLowerCase();
+module.exports.checkCommand = instr => {
+    let instrL = instr.toLowerCase().replace(new RegExp(`^${this.botstr.cmd_Prefix}`),"");
     let command = "";
     let subcmd = "";
     let error = false;
