@@ -843,7 +843,7 @@ client.setInterval(() => {
                 element.endtime = null;
                 element.msgid = null;
 
-                db.get(`SELECT discord_channel_id, lot_message_id, lot_endtime, lot_key_id FROM lottery WHERE lot_message_id="${lotmess_id}" AND win_discord_id IS NULL`).then(lotrow => {
+                db.get(`SELECT discord_channel_id, lot_message_id, lot_endtime, lot_key_id, author_discord_id FROM lottery WHERE lot_message_id="${lotmess_id}" AND win_discord_id IS NULL`).then(lotrow => {
                     if(!lotrow){
                         DEBUGLOG(`INSIDE INTERVAL ERROR Message [${lotmess_id}]. [${botstr.err_text_LotteryStopped}]`);
                     }

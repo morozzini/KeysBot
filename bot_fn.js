@@ -90,12 +90,13 @@ module.exports.getCommand = instr => {
                     }
                     else if((`time` in command)){
                         command.time += this.getTimeOut(splstr[i]);
-                        if(command.time > 86400000){ //24 часа
-                            command.time = 86400000;
-                        }
-                        else if (command.time < 300000){ //5 минут
-                            command.time = 300000;
-                        }
+                    }
+                    
+                    if(command.time > 86400000){ //24 часа
+                        command.time = 86400000;
+                    }
+                    else if (command.time < 300000){ //5 минут
+                        command.time = 300000;
                     }
                 }
                 else{
