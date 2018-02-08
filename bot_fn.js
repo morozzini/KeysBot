@@ -491,6 +491,9 @@ module.exports.getHelp =  incmd => {
         case "getkey":
             return this.getHelpEmbed("getkey", this.botstr.help_text_Getkey);
             break;
+        case "getrandomkey":
+            return this.getHelpEmbed("getrandomkey", this.botstr.help_text_Getrandomkey);
+            break;
         case "show":
             return this.getHelpEmbed("show", this.botstr.help_text_Show);
             break;

@@ -384,7 +384,7 @@ client.on('message', message => {
                     }
                 }
 
-                db.all(`SELECT discord_id,discord_nickname,discord_channel,getdiscord_id FROM gamekeys WHERE discord_channel IN (${chanelId}) AND (getdiscord_id != "lot" OR getdiscord_id IS NULL)`).then(rows => {
+                db.all(`SELECT discord_id,discord_nickname,discord_channel,getdiscord_id,getdiscord_nickname FROM gamekeys WHERE discord_channel IN (${chanelId}) AND (getdiscord_id != "lot" OR getdiscord_id IS NULL)`).then(rows => {
                     if (!rows || rows.length == 0) {
                         DEBUGLOG(`OUT STATUS Key not Found. (!rows)`);
                         message.reply(botfn.getTextErr(botstr.err_text_KeyNotFound));
@@ -394,6 +394,7 @@ client.on('message', message => {
                         let NumKeys = 0;
                         let NumOutKeys = 0;
                         let NumRunLot = 0;
+                        let RunLotMsgId = new Map();
 
                         for (let i = 0; i < rows.length; i++) {
                             if (!autors.has(rows[i].discord_id)) {
@@ -405,8 +406,11 @@ client.on('message', message => {
                             }
 
                             if (rows[i].getdiscord_id == `lotrun`) {
-                                channels.get(rows[i].discord_channel).numrunlot++;
-                                NumRunLot++;
+                                if(!RunLotMsgId.has(rows[i].getdiscord_nickname)){
+                                    RunLotMsgId.set(rows[i].getdiscord_nickname, 1);
+                                    channels.get(rows[i].discord_channel).numrunlot++;
+                                    NumRunLot++;
+                                }
                             }
                             else if (rows[i].getdiscord_id != null) {
                                 autors.get(rows[i].discord_id).numkeys++;
@@ -749,7 +753,7 @@ client.on('message', message => {
                     }
                 }
                 else if (command.cmd === "status") {
-                    db.all(`SELECT discord_channel,getdiscord_id FROM gamekeys WHERE discord_id="${message.author.id}"`).then(rows => {
+                    db.all(`SELECT discord_channel,getdiscord_id,getdiscord_nickname FROM gamekeys WHERE discord_id="${message.author.id}"`).then(rows => {
                         if (!rows || rows.length == 0) {
                             DEBUGLOG(`OUT STATUS Key not Found. (!rows)`);
                             message.reply(botfn.getTextErr(botstr.err_text_KeyNotFound));
@@ -761,6 +765,7 @@ client.on('message', message => {
                             let NumRunLot = 0;
 
                             let channels = new Map();
+                            let RunLotMsgId = new Map();
 
                             for (let i = 0; i < rows.length; i++) {
                                 if (!channels.has(rows[i].discord_channel)) {
@@ -778,8 +783,11 @@ client.on('message', message => {
                                     NumLot++;
                                 }
                                 else if (rows[i].getdiscord_id == `lotrun`) {
-                                    channels.get(rows[i].discord_channel).numrunlot++;
-                                    NumRunLot++;
+                                    if(!RunLotMsgId.has(rows[i].getdiscord_nickname)){
+                                        RunLotMsgId.set(rows[i].getdiscord_nickname, 1);
+                                        channels.get(rows[i].discord_channel).numrunlot++;
+                                        NumRunLot++;
+                                    }
                                 }
                                 else if (rows[i].getdiscord_id != null) {
                                     channels.get(rows[i].discord_channel).numoutkeys++;
