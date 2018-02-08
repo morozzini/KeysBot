@@ -4,7 +4,7 @@
   "description": "Discord bot for game key",
   "main": "bot.js",
   "dependencies": {
-    "discord.js": "^11.2.1",
+    "discord.js": "^11.3.0",
     "sqlite": "^2.8.0"
   },
   "repository": {
