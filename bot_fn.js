@@ -217,6 +217,9 @@ module.exports.checkCommand = instr => {
     else if (/^(getkey|gk)$/.test(instrL)){
         command = `getkey`;
     }
+    else if (/^(getcat|getrandomkey|getrkey|gc)$/.test(instrL)){
+        command = `getrandomkey`;
+    }
     else if (/^(show|sh|ls)$/.test(instrL)){
         command = `show`;
     }

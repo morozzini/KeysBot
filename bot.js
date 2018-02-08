@@ -1,6 +1,6 @@
 
 const DEBUG = true;
-const BOTVERSION = "Keys Bot v.0.0.7b";
+const BOTVERSION = "Keys Bot v.0.0.8b";
 
 const config = require('./config.json');
 const botstr = require(`./${config.lang}`);
@@ -12,6 +12,7 @@ const Discord = require('discord.js');
 const client = new Discord.Client();
 var ArrLottery = [];
 var ShowNextMap = new Map();
+var NeedUpdateActivity = 0;
 
 function DEBUGLOG(logstr) {
     if (DEBUG)
@@ -67,7 +68,6 @@ client.on('ready', () => {
                                 }
                             }
                         }
-        
                         users.forEach(element => {
                             client.fetchUser(element.userid).then(user => {
                                 DEBUGLOG(`OUT AFTERSTART Found lottery "${user.username}" [${element.lotid}]`)
@@ -88,6 +88,7 @@ client.on('ready', () => {
             })
         }
     })
+    UpdateActivity();
 });
 
 client.on('message', message => {
@@ -222,9 +223,28 @@ client.on('message', message => {
                             message.channel.send(botfn.getText(botstr.getkey_text_KeyFoundSendChannel, [row.NameOfGame, `${message.author}`]));
                             strshow = botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [inId, row.NameOfGame, row.GameKey]));
                             message.author.send(botfn.getText(botstr.getkey_text_KeyFoundSendUser, [strshow, `<@${row.discord_id}>`]));
+                            UpdateActivity();
                         }
                     });
                 }
+            }
+            else if (command.cmd === "getrandomkey") {
+                db.all(`SELECT id,discord_id,NameOfGame,GameKey FROM gamekeys WHERE discord_channel="${message.channel.id}" AND getdiscord_id IS NULL`).then(rows => {
+                    if (!rows) {
+                        DEBUGLOG(`OUT GETCAT not Found. (!row)`);
+                        message.reply(botstr.err_text_KeyNotFound);
+                    }
+                    else{
+                        let randomNum = Math.floor(Math.random() * rows.length);
+
+                        db.run(`UPDATE gamekeys SET getdiscord_id="${message.author.id}",getdiscord_nickname="${message.author.username}" WHERE discord_channel="${message.channel.id}" and id="${rows[randomNum].id}"`);
+                        DEBUGLOG(`OUT GETCAT Key Found.(${randomNum}/${rows.length}) [${rows[randomNum].id}. ${rows[randomNum].NameOfGame}] [${message.author.id}][${message.author.username}]`);
+                        message.channel.send(botfn.getText(botstr.getkey_text_KeyFoundSendChannel, [rows[randomNum].NameOfGame, `${message.author}`]));
+                        strshow = botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [rows[randomNum].id, rows[randomNum].NameOfGame, rows[randomNum].GameKey]));
+                        message.author.send(botfn.getText(botstr.getkey_text_KeyFoundSendUser, [strshow, `<@${rows[randomNum].discord_id}>`]));
+                        UpdateActivity();
+                    }
+                });
             }
             else if (command.cmd === "start") {
                 let inId = command.id;
@@ -265,6 +285,7 @@ client.on('message', message => {
                                 msgid: messagelot.id
                             });
                             
+                            UpdateActivity();
                         });
                     }
                 });
@@ -341,6 +362,7 @@ client.on('message', message => {
                             //strshow = `${botfn.getText(botstr.show_text_FormatNameAuthor, [row.id, row.NameOfGame, row.discord_nickname])}`;
                             message.reply(botfn.getText(botstr.stop_text_LotteryStopSuccess, inId));
                         }
+                        UpdateActivity();
                     }
                 });
             }
@@ -595,7 +617,7 @@ client.on('message', message => {
                                         DEBUGLOG(`OUT ADD added key. ${strshow}`);
                                         message.reply(botfn.getText(botstr.addkey_text_AddKeySuccess, strshow));
                                     }
-
+                                    UpdateActivity();
                                 });
                             }
                             else {
@@ -668,6 +690,7 @@ client.on('message', message => {
                                         message.reply(botfn.getText(botstr.set_text_UpdateKeySuccess_OneKey, botfn.getText(botstr.show_text_KeyFound, strshow)));
                                     }
                                 }
+                                UpdateActivity();
                             }
                         });
                     }
@@ -708,6 +731,7 @@ client.on('message', message => {
                                         message.reply(botfn.getText(botstr.del_text_DelSuccess_OneKey, botfn.getText(botstr.show_text_KeyFound, strshow)));
                                     }
                                 }
+                                UpdateActivity();
                             }
                         });
                     }
@@ -868,7 +892,7 @@ client.setInterval(() => {
                                                         strshow += `${botfn.getText(botstr.show_text_FormatNameKey, [row[i].id, row[i].NameOfGame, row[i].GameKey])}\n`;
                                                         namegame += `${(i == 0)?"":"`, `"}${row[i].NameOfGame}`;
                                                     }
-                                                    DEBUGLOG(`OUT INTERVAL Message [${lotmess_id}]. Ended lot! players:${LotPlayers[1]}. Key sended to (${winNum}/${LotPlayers[0].length})[${user.id}][${user.username}] [\`${namegame}\`]`);
+                                                    DEBUGLOG(`OUT INTERVAL Message [${lotmess_id}]. Ended lot! players:${LotPlayers[1]}. Key sended to (${winNum+1}/${LotPlayers[0].length})[${user.id}][${user.username}] [\`${namegame}\`]`);
     
                                                     db.run(`UPDATE gamekeys SET getdiscord_id="${user.id}",getdiscord_nickname="${user.username}" WHERE getdiscord_nickname="${lotmess_id}" and getdiscord_id="lotrun"`);
                                                     db.run(`UPDATE lottery SET win_discord_id="${user.id}",win_discord_nickname="${user.username}" WHERE lot_message_id="${lotmess_id}" AND win_discord_id IS NULL`);
@@ -876,6 +900,7 @@ client.setInterval(() => {
                                                     lotmessage.edit(new Discord.RichEmbed(lotmessage.embeds[0]).setColor(botstr.start_color_LotteryStopped));
                                                     lotmessage.channel.send(botfn.getText(`${botstr.start_text_LotteryStoppedSuccess} ${botstr.getkey_text_KeyFoundSendChannel}`, [namegame, `<@${user.id}>`]));
                                                     user.send(botfn.getText(botstr.getkey_text_KeyFoundSendUser, [botfn.getText(botstr.show_text_KeyFound, strshow), `<@${row[0].discord_id}>`]));
+                                                    UpdateActivity();
                                                 }
                                             })
                                         })
@@ -909,6 +934,57 @@ client.setInterval(() => {
         });
     }
 },15000)
+
+client.setInterval(() => {
+    UpdateActivity();
+},600000)
+
+function UpdateActivity(){
+    //db.all(`SELECT id,getdiscord_id FROM gamekeys WHERE getdiscord_id IS NULL`).then(rows => {
+    db.get(`SELECT COUNT(*) AS keyCount FROM gamekeys WHERE getdiscord_id IS NULL`).then(row => {
+        if(!row /*|| rows.length == 0*/){
+            client.user.setActivity(`0 ключей`);
+        }
+        else{
+            let NumKeys = row.keyCount;//0;
+            let NumRunLot = 0;
+
+            for(let i = ArrLottery.length-1; i >= 0; i--){
+                if(ArrLottery[i].endtime || ArrLottery.msgid){
+                    NumRunLot++;
+                }
+            }
+            
+            
+            let strshow = ``;
+            if(NumRunLot > 0){
+                if (/(1[1234]|[5-9]|0)$/.test(NumRunLot)) {
+                    strshow += `${NumRunLot} лотерей и `;
+                }
+                else if (/[234]$/.test(NumRunLot)) {
+                    strshow += `${NumRunLot} лотереи и `;
+                }
+                else {
+                    strshow += `${NumRunLot} лотерею и `;
+                }
+            }
+
+            if (/(1[1234]|[5-9]|0)$/.test(NumKeys)) {
+                strshow += `${NumKeys} ключей`;
+            }
+            else if (/[234]$/.test(NumKeys)) {
+                strshow += `${NumKeys} ключа`;
+            }
+            else {
+                strshow += `${NumKeys} ключ`;
+            }
+
+            client.user.setActivity(strshow,{type:"PLAYING"});
+            
+        }
+    });
+}
+
 
 db.open(config.database);
 client.login(config.token);
