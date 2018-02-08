@@ -85,7 +85,9 @@ client.on('ready', () => {
                     endtime: element.lot_endtime,
                     msgid: element.lot_message_id
                 });
+                UpdateActivity();
             })
+            
         }
     })
     UpdateActivity();
@@ -920,6 +922,7 @@ client.setInterval(() => {
                                 db.run(`DELETE FROM lottery WHERE lot_message_id="${lotmess_id}" AND win_discord_id IS NULL`);
                                 lotmessage.edit(new Discord.RichEmbed(lotmessage.embeds[0]).setColor(botstr.start_color_LotteryStopped));
                                 lotmessage.channel.send(botfn.getText(botstr.start_text_LotteryStoppedNoReaction, `<@${lotrow.author_discord_id}>`));
+                                UpdateActivity();
                             }
 
                         })
