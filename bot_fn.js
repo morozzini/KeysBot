@@ -115,6 +115,14 @@ module.exports.getCommand = instr => {
                     command.name += ` ${splstr[i]}`;
                 }
             }
+            else if (/^search$/.test(command.cmd)){
+                if (!(`name` in command)){
+                    command.name = `${splstr[i]}`;
+                }
+                else{
+                    command.name += ` ${splstr[i]}`;
+                }
+            }
             else{
                 command.err = true;
                 command.prm = `${this.botstr.err_text_Prefix} ${this.getText(this.botstr.err_text_WrongUseCommand, `${command.cmd}${('scmd' in command)?command.scmd:''}`)}`;
@@ -173,6 +181,12 @@ module.exports.getCommand = instr => {
             command.prm = `${this.botstr.err_text_Prefix} ${this.getText(this.botstr.err_text_WrongUseCommand, [command.cmd,`(${this.botstr.err_text_WrongUseCommand_UnsetKey})`])}`;
         }
     }
+    else if(!command.err && /^search$/.test(command.cmd)){
+        if(!(`name` in command) || (command.name.length < 3)){
+            command.err = true;
+            command.prm = `${this.botstr.err_text_Prefix} ${this.getText(this.botstr.err_text_WrongUseCommand, [command.cmd,`(${this.botstr.err_text_WrongUseCommand_UnsetName})`])}`;
+        }
+    }
     
     if(command.err){
         //delete command.cmd;
@@ -220,6 +234,9 @@ module.exports.checkCommand = instr => {
     else if (/^(getcat|getrandomkey|getrkey|gc)$/.test(instrL)){
         command = `getrandomkey`;
     }
+    else if (/^(search|find|google|yandex|ya)$/.test(instrL)){
+        command = `search`;
+    }
     else if (/^(show|sh|ls)$/.test(instrL)){
         command = `show`;
     }
@@ -242,6 +259,10 @@ module.exports.checkCommand = instr => {
     else if (/^(shownext|shnext|shn|sn|next)$/.test(instrL)){
         command = `show`;
         subcmd = `next`;
+    }
+    else if (/^(showlast|showend|last|end)$/.test(instrL)){
+        command = `show`;
+        subcmd = `last`;
     }
     else if (/^(addkey|ak|add)$/.test(instrL)){
         command = `add`;
@@ -494,6 +515,9 @@ module.exports.getHelp =  incmd => {
         case "getrandomkey":
             return this.getHelpEmbed("getrandomkey", this.botstr.help_text_Getrandomkey);
             break;
+        case "search":
+            return this.getHelpEmbed("search", this.botstr.help_text_Search);
+            break;
         case "show":
             return this.getHelpEmbed("show", this.botstr.help_text_Show);
             break;
@@ -511,6 +535,9 @@ module.exports.getHelp =  incmd => {
             break;
         case "shownext":
             return this.getHelpEmbed("shownext", this.botstr.help_text_Shownext);
+            break;
+        case "showlast":
+            return this.getHelpEmbed("showlast", this.botstr.help_text_Showlast);
             break;
         case "addkey":
             return this.getHelpEmbed("addkey", this.botstr.help_text_Addkey);

@@ -1,6 +1,6 @@
 
 const DEBUG = true;
-const BOTVERSION = "Keys Bot v.0.0.8b";
+const BOTVERSION = "Keys Bot v.0.0.9b";
 
 const config = require('./config.json');
 const botstr = require(`./${config.lang}`);
@@ -93,6 +93,29 @@ client.on('ready', () => {
     UpdateActivity();
 });
 
+client.on('disconnect', e => {
+    DEBUGLOG(`DISCONNECT "${e}"`);
+    //client.destroy();//.then(client.login.bind(client));
+    //process.exit(1);
+});
+client.on('reconnecting', () => {
+    DEBUGLOG(`RECONNECT`);
+    //client.destroy();//.then(client.login.bind(client));
+    //process.exit(1);
+});
+
+client.on('error', e => {
+    DEBUGLOG(`ERROR "${e}"`);
+    client.destroy();//.then(client.login.bind(client));
+    process.exit(1);
+});
+
+client.on('warn', e => {
+    DEBUGLOG(`WARN "${e}"`);
+    //client.destroy();//.then(client.login.bind(client));
+    //process.exit(1);
+});
+
 client.on('message', message => {
     if (message.author === client.user) return;
 
@@ -160,6 +183,9 @@ client.on('message', message => {
                 }
                 else if ((inSubCommand === "lot") || (inSubCommand === "lotrun")) {
                     request = `SELECT id,discord_nickname,discord_id,NameOfGame FROM gamekeys WHERE discord_channel="${message.channel.id}" and getdiscord_id="lotrun"`;
+                }
+                else if (inSubCommand === "last") {
+                    request = `SELECT id,discord_nickname,discord_id,NameOfGame FROM gamekeys WHERE discord_channel="${message.channel.id}" and getdiscord_id IS NULL LIMIT (SELECT count(*)-20 FROM gamekeys WHERE discord_channel="${message.channel.id}" and getdiscord_id IS NULL),20`
                 }
                 else {
                     request = `SELECT id,discord_nickname,discord_id,NameOfGame FROM gamekeys WHERE discord_channel="${message.channel.id}" and getdiscord_id IS NULL`;
@@ -245,6 +271,34 @@ client.on('message', message => {
                         strshow = botfn.getText(botstr.show_text_KeyFound, botfn.getText(botstr.show_text_FormatNameKey, [rows[randomNum].id, rows[randomNum].NameOfGame, rows[randomNum].GameKey]));
                         message.author.send(botfn.getText(botstr.getkey_text_KeyFoundSendUser, [strshow, `<@${rows[randomNum].discord_id}>`]));
                         UpdateActivity();
+                    }
+                });
+            }
+            else if (command.cmd === "search") {
+                var searchName = command.name.substr(0,10).toLowerCase();
+                //var request = `SELECT id,discord_nickname,discord_id,NameOfGame FROM gamekeys WHERE discord_channel="${message.channel.id}" and getdiscord_id IS NULL AND NameOfGame REGEXP "(?i)${searchName}"`;
+                var request = `SELECT id,discord_nickname,discord_id,NameOfGame FROM gamekeys WHERE discord_channel="${message.channel.id}" and getdiscord_id IS NULL AND LOWER(NameOfGame) LIKE "%${searchName}%"`;
+
+                db.all(request).then(row => {
+                    if (!row) {
+                        DEBUGLOG(`OUT SEARCH Not found all key. (!row)`);
+                        message.reply(botstr.err_text_KeyNotFound);
+                    }
+                    else {
+                        var strshow = "";
+
+                        for (var i = 0; i < row.length; i++) {
+                            strshow += `${botfn.getText(botstr.show_text_FormatNameAuthor, [row[i].id, row[i].NameOfGame, row[i].discord_nickname])}\n`;
+                        }
+
+                        if (strshow === "") {
+                            DEBUGLOG(`OUT SEARCH Not found key.`);
+                            message.channel.send(botstr.err_text_KeyNotFoundForChannel);
+                        }
+                        else {
+                            DEBUGLOG(`OUT SEARCH Found key.`);
+                            message.channel.send(botfn.getText(botstr.show_text_KeyFound, strshow));
+                        }
                     }
                 });
             }
